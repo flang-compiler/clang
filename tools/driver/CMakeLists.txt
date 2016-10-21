@@ -52,7 +52,7 @@ endif()
 add_dependencies(clang clang-headers)
 
 if(NOT CLANG_LINKS_TO_CREATE)
-  set(CLANG_LINKS_TO_CREATE clang++ clang-cl)
+  set(CLANG_LINKS_TO_CREATE clang++ clang-cl flang)
 
   if (WIN32)
     list(APPEND CLANG_LINKS_TO_CREATE ../msbuild-bin/cl)
@@ -65,7 +65,7 @@ endforeach()
 
 # Configure plist creation for OS X.
 set (TOOL_INFO_PLIST "Info.plist" CACHE STRING "Plist name")
-if (APPLE)  
+if (APPLE)
   if (CLANG_VENDOR)
     set(TOOL_INFO_NAME "${CLANG_VENDOR} clang")
   else()
@@ -75,12 +75,12 @@ if (APPLE)
   set(TOOL_INFO_UTI "${CLANG_VENDOR_UTI}")
   set(TOOL_INFO_VERSION "${CLANG_VERSION}")
   set(TOOL_INFO_BUILD_VERSION "${LLVM_MAJOR_VERSION}.${LLVM_MINOR_VERSION}")
-  
+
   set(TOOL_INFO_PLIST_OUT "${CMAKE_CURRENT_BINARY_DIR}/${TOOL_INFO_PLIST}")
   target_link_libraries(clang
     "-Wl,-sectcreate,__TEXT,__info_plist,${TOOL_INFO_PLIST_OUT}")
   configure_file("${TOOL_INFO_PLIST}.in" "${TOOL_INFO_PLIST_OUT}" @ONLY)
-  
+
   set(TOOL_INFO_UTI)
   set(TOOL_INFO_NAME)
   set(TOOL_INFO_VERSION)
@@ -101,7 +101,7 @@ if(LD64_EXECUTABLE AND CLANG_ORDER_FILE)
   # This is a test to ensure the actual order file works with the linker.
   check_linker_flag("-Wl,-order_file,${CLANG_ORDER_FILE}"
     LINKER_ORDER_FILE_WORKS)
-  
+
   if(LINKER_ORDER_FILE_WORKS)
     target_link_libraries(clang "-Wl,-order_file,${CLANG_ORDER_FILE}")
     set_target_properties(clang PROPERTIES LINK_DEPENDS ${CLANG_ORDER_FILE})

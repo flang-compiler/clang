@@ -90,6 +90,15 @@ namespace types {
   /// C type (used for clang++ emulation of g++ behaviour)
   ID lookupCXXTypeForCType(ID Id);
 
+  /// isFortran -- is it a Fortran input
+  bool isFortran(ID Id);
+
+  /// isFreeFormFortran -- is it a free form layout Fortran input
+  bool isFreeFormFortran(ID Id);
+
+  /// isFixedFormFortran -- is it a fixed form layout Fortran input
+  bool isFixedFormFortran(ID Id);
+
 } // end namespace types
 } // end namespace driver
 } // end namespace clang
