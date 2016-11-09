@@ -4037,6 +4037,15 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     LowerCmdArgs.push_back("0x40000000");
   }
 
+  // -Mstack_arrays
+  for (auto Arg : Args.filtered(options::OPT_Mstackarrays)) {
+    Arg->claim();
+    CommonCmdArgs.push_back("-x");
+    CommonCmdArgs.push_back("54");
+    CommonCmdArgs.push_back("8");
+  }
+
+
   // -Mipa has no effect
   if (Arg *A = Args.getLastArg(options::OPT_Mipa)) {
     getToolChain().getDriver().Diag(diag::warn_drv_clang_unsupported)

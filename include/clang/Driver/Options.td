@@ -2285,6 +2285,7 @@ defm Mfreeform: BooleanMFlag<"freeform">, Group<fortran_format_Group>,
   HelpText<"Enable or disable free-form format for Fortran">;
 
 def Mipa: Joined<["-"], "Mipa">, Group<gfortran_Group>;
+def Mstackarrays: Joined<["-"], "Mstack_arrays">, Group<gfortran_Group>;
 def pc: JoinedOrSeparate<["-"], "pc">, Group<gfortran_Group>;
 def Mfprelaxed: Joined<["-"], "Mfprelaxed">, Group<gfortran_Group>;
 def Mnofprelaxed: Joined<["-"], "Mnofprelaxed">, Group<gfortran_Group>;
