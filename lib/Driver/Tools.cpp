@@ -4497,6 +4497,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   const Driver &D = getToolChain().getDriver();
   ArgStringList CmdArgs;
 
+  const bool IsFlang = D.IsFortranMode();
   bool IsWindowsGNU = getToolChain().getTriple().isWindowsGNUEnvironment();
   bool IsWindowsCygnus =
       getToolChain().getTriple().isWindowsCygwinEnvironment();
@@ -4525,6 +4526,10 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   // Add the "effective" target triple.
   CmdArgs.push_back("-triple");
   CmdArgs.push_back(Args.MakeArgString(TripleStr));
+
+  // For FLANG, we want to pass -O1 as the default, iff no -O was given
+  if (IsFlang && (!Args.getLastArg(options::OPT_O_Group)))
+      CmdArgs.push_back("-O1");
 
   if (IsCuda) {
     // We have to pass the triple of the host if compiling for a CUDA device and
