@@ -2291,6 +2291,7 @@ def Mfprelaxed: Joined<["-"], "Mfprelaxed">, Group<gfortran_Group>;
 def Mnofprelaxed: Joined<["-"], "Mnofprelaxed">, Group<gfortran_Group>;
 defm Mstride0: BooleanMFlag<"stride0">, Group<gfortran_Group>;
 defm Mrecursive: BooleanMFlag<"recursive">, Group<gfortran_Group>;
+defm Mreentrant: BooleanMFlag<"reentrant">, Group<gfortran_Group>;
 defm Mbounds: BooleanMFlag<"bounds">, Group<gfortran_Group>;
 defm Mdaz: BooleanMFlag<"daz">, Group<gfortran_Group>,
   HelpText<"Treat denormalized numbers as zero">;

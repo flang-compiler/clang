@@ -3962,6 +3962,18 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     CommonCmdArgs.push_back("-norecursive");
   }
 
+  // Enable generating reentrant code (disable optimizations that inhibit it)
+  for (auto Arg : Args.filtered(options::OPT_Mreentrant_on)) {
+    Arg->claim();
+    CommonCmdArgs.push_back("-reentrant");
+  }
+
+  // Allow optimizations inhibiting reentrancy
+  for (auto Arg : Args.filtered(options::OPT_Mreentrant_off)) {
+    Arg->claim();
+    CommonCmdArgs.push_back("-noreentrant");
+  }
+
   // Swap byte order for unformatted IO
   for (auto Arg : Args.filtered(options::OPT_Mbyteswapio, options::OPT_byteswapio)) {
     Arg->claim();
