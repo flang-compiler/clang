@@ -4070,6 +4070,31 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
       << A->getAsString(Args);
   }
 
+  // Handle -r8 and -fdefault-real-8
+  if (Args.hasArg(options::OPT_r8, options::OPT_default_real_8_f)) {
+    UpperCmdArgs.push_back("-x");
+    UpperCmdArgs.push_back("124");
+    UpperCmdArgs.push_back("0x8");
+    UpperCmdArgs.push_back("-x");
+    UpperCmdArgs.push_back("124");
+    UpperCmdArgs.push_back("0x80000");
+    for (Arg *A : Args.filtered(options::OPT_r8, options::OPT_default_real_8_f)) {
+      A->claim();
+    }
+  }
+
+  // Handle -fno-default-real-8
+  if (Args.hasArg(options::OPT_default_real_8_fno)) {
+    UpperCmdArgs.push_back("-y");
+    UpperCmdArgs.push_back("124");
+    UpperCmdArgs.push_back("0x8");
+    UpperCmdArgs.push_back("-y");
+    UpperCmdArgs.push_back("124");
+    UpperCmdArgs.push_back("0x80000");
+    for (Arg *A : Args.filtered(options::OPT_default_real_8_fno)) {
+      A->claim();
+    }
+  }
 
   // Process and claim -i8 argument
   if (Args.hasArg(options::OPT_i)) {

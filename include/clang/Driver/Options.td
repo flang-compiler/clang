@@ -2230,7 +2230,8 @@ defm d_lines_as_code : BooleanFFlag<"d-lines-as-code">, Group<gfortran_Group>;
 defm d_lines_as_comments : BooleanFFlag<"d-lines-as-comments">, Group<gfortran_Group>;
 defm default_double_8 : BooleanFFlag<"default-double-8">, Group<gfortran_Group>;
 defm default_integer_8 : BooleanFFlag<"default-integer-8">, Group<gfortran_Group>;
-defm default_real_8 : BooleanFFlag<"default-real-8">, Group<gfortran_Group>;
+defm default_real_8 : BooleanFFlag<"default-real-8">, Group<gfortran_Group>,
+  HelpText<"Set the default real type to an 8 byte wide type">;
 defm dollar_ok : BooleanFFlag<"dollar-ok">, Group<gfortran_Group>;
 defm dump_fortran_optimized : BooleanFFlag<"dump-fortran-optimized">, Group<gfortran_Group>;
 defm dump_fortran_original : BooleanFFlag<"dump-fortran-original">, Group<gfortran_Group>;
@@ -2338,6 +2339,8 @@ def staticFlangLibs: Flag<["-"], "static-flang-libs">, Group<gfortran_Group>,
   HelpText<"Link using static Flang libraries">;
 def noFlangLibs: Flag<["-"], "no-flang-libs">, Group<gfortran_Group>,
   HelpText<"Do not link against Flang libraries">;
+def r8: Flag<["-"], "r8">, Group<gfortran_Group>,
+  HelpText<"Set the default real type to an 8 byte wide type">;
 
 // Flang internal debug options
 def Mx_EQ : Joined<["-"], "Mx,">, Group<gfortran_Group>;
