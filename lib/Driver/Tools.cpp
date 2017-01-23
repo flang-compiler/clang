@@ -4272,14 +4272,34 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
       assert(A->getOption().matches(options::OPT_O) && "Must have a -O flag");
       StringRef S(A->getValue());
       if ((S == "s") || (S == "z")) {
-	// -Os = size; -Oz = more size
-	OptOStr = "2"; // FIXME -Os|-Oz => -opt ?
+        // -Os = size; -Oz = more size
+        OptOStr = "2"; // FIXME -Os|-Oz => -opt ?
       } else if ((S == "1") || (S == "2") || (S == "3")) {
-	OptOStr = S;
+        OptOStr = S;
       } else {
-	OptOStr = "4";
+        OptOStr = "4";
       }
     }
+  }
+
+  StringRef OptOStrUpper(OptOStr);
+  if (!Args.hasArg(options::OPT_extraOpt)) {
+    // Disable passing higher optimization levels to pgf901-llvm
+
+    if (Arg *A = Args.getLastArg(options::OPT_O_Group)) {
+      // Limit optimization level to one
+      if (A->getOption().matches(options::OPT_O0)) {
+        OptOStrUpper = "0";
+      } else {
+        OptOStrUpper = "1";
+      }
+    }
+  } else {
+      // When "extra optimization" argument is present, use the same
+      // optimization level for pgf901-llvm and pgf902-llvm
+      for (Arg *A : Args.filtered(options::OPT_extraOpt)) {
+        A->claim();
+      }
   }
 
   if (Arg *A = Args.getLastArg(options::OPT_g_Group)) {
@@ -4292,7 +4312,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   // TODO do we need to invoke this under GDB sometimes?
   const char *UpperExec = Args.MakeArgString(getToolChain().GetProgramPath("pgf901-llvm"));
 
-  UpperCmdArgs.push_back("-opt"); UpperCmdArgs.push_back(Args.MakeArgString(OptOStr));
+  UpperCmdArgs.push_back("-opt"); UpperCmdArgs.push_back(Args.MakeArgString(OptOStrUpper));
   UpperCmdArgs.push_back("-terse"); UpperCmdArgs.push_back("1");
   UpperCmdArgs.push_back("-inform"); UpperCmdArgs.push_back("warn");
   UpperCmdArgs.push_back("-nohpf");

@@ -2339,6 +2339,7 @@ def staticFlangLibs: Flag<["-"], "static-flang-libs">, Group<gfortran_Group>,
   HelpText<"Link using static Flang libraries">;
 def noFlangLibs: Flag<["-"], "no-flang-libs">, Group<gfortran_Group>,
   HelpText<"Do not link against Flang libraries">;
+def extraOpt: Flag<["-"], "extra-opt">, Group<gfortran_Group>;
 def r8: Flag<["-"], "r8">, Group<gfortran_Group>,
   HelpText<"Set the default real type to an 8 byte wide type">;
 
