@@ -10198,6 +10198,17 @@ void gnutools::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   Args.AddAllArgs(CmdArgs, options::OPT_L);
   Args.AddAllArgs(CmdArgs, options::OPT_u);
 
+  bool NeedFortranRTLArgs = false;
+  if (D.IsFortranMode() && !Args.hasArg(options::OPT_nostdlib) &&
+      !Args.hasArg(options::OPT_noFlangLibs)) {
+    NeedFortranRTLArgs = true;
+  } else {
+    // Claim "no Flang libraries" arguments if any
+    for (auto Arg : Args.filtered(options::OPT_noFlangLibs)) {
+      Arg->claim();
+    }
+  }
+
   ToolChain.AddFilePathLibArgs(Args, CmdArgs);
 
   if (D.isUsingLTO())
@@ -10208,19 +10219,16 @@ void gnutools::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
   bool NeedsSanitizerDeps = addSanitizerRuntimes(ToolChain, Args, CmdArgs);
   bool NeedsXRayDeps = addXRayRuntime(ToolChain, Args, CmdArgs);
+  if (NeedFortranRTLArgs) {
+    CmdArgs.push_back("-lf90main");
+  }
   AddLinkerInputs(ToolChain, Inputs, Args, CmdArgs);
   // The profile runtime also needs access to system libraries.
   getToolChain().addProfileRTLibs(Args, CmdArgs);
 
   // Add Fortran runtime libraries
-  if (D.IsFortranMode() && !Args.hasArg(options::OPT_nostdlib) &&
-      !Args.hasArg(options::OPT_noFlangLibs)) {
+  if (NeedFortranRTLArgs) {
     ToolChain.AddFortranStdlibLibArgs(Args, CmdArgs);
-  } else {
-    // Claim "no Flang libraries" arguments if any
-    for (auto Arg : Args.filtered(options::OPT_noFlangLibs)) {
-      Arg->claim();
-    }
   }
 
   if (D.CCCIsCXX() &&
