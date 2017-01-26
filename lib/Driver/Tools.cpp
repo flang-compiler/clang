@@ -4307,6 +4307,12 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     LowerCmdArgs.push_back("-debug");
   }
 
+  if (Arg *A = Args.getLastArg(options::OPT_ffast_math)) {
+    LowerCmdArgs.push_back("-x");
+    LowerCmdArgs.push_back("216");
+    LowerCmdArgs.push_back("1");
+  }
+
   /***** Upper part of the Fortran frontend *****/
 
   // TODO do we need to invoke this under GDB sometimes?
