@@ -62,6 +62,12 @@ static bool needFortranLibs(const Driver &D, const ArgList &Args) {
   return false;
 }
 
+/// \brief Determine if Fortran "main" object is needed
+static bool needFortranMain(const Driver &D, const ArgList &Args) {
+  return (needFortranLibs(D, Args)
+       && !Args.hasArg(options::OPT_no_fortran_main));
+}
+
 static void handleTargetFeaturesGroup(const ArgList &Args,
                                       std::vector<const char *> &Features,
                                       OptSpecifier Group) {
@@ -264,7 +270,7 @@ static void AddLinkerInputs(const ToolChain &TC, const InputInfoList &Inputs,
 
     // Add Fortan "main" before the first linker input
     if (!SeenFirstLinkerInput) {
-      if (needFortranLibs(D, Args)) {
+      if (needFortranMain(D, Args)) {
         CmdArgs.push_back("-lf90main");
       }
       SeenFirstLinkerInput = true;
@@ -287,8 +293,13 @@ static void AddLinkerInputs(const ToolChain &TC, const InputInfoList &Inputs,
     }
   }
 
-  if (!SeenFirstLinkerInput && needFortranLibs(D, Args)) {
+  if (!SeenFirstLinkerInput && needFortranMain(D, Args)) {
     CmdArgs.push_back("-lf90main");
+  }
+
+  // Claim "no Fortran main" arguments
+  for (auto Arg : Args.filtered(options::OPT_no_fortran_main)) {
+    Arg->claim();
   }
 
   // LIBRARY_PATH - included following the user specified library paths.

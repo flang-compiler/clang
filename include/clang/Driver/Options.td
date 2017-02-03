@@ -2342,6 +2342,10 @@ def noFlangLibs: Flag<["-"], "no-flang-libs">, Group<gfortran_Group>,
 def extraOpt: Flag<["-"], "extra-opt">, Group<gfortran_Group>;
 def r8: Flag<["-"], "r8">, Group<gfortran_Group>,
   HelpText<"Set the default real type to an 8 byte wide type">;
+def no_fortran_main: Flag<["-"], "fno-fortran-main">, Group<gfortran_Group>,
+  HelpText<"Don't link in Fortran main">;
+def : Flag<["-"], "Mnomain">, Group<gfortran_Group>,
+    Alias<no_fortran_main>;
 
 // Flang internal debug options
 def Mx_EQ : Joined<["-"], "Mx,">, Group<gfortran_Group>;
