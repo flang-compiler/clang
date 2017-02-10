@@ -4104,46 +4104,67 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
       << A->getAsString(Args);
   }
 
-  // Handle -r8 and -fdefault-real-8
-  if (Args.hasArg(options::OPT_r8, options::OPT_default_real_8_f)) {
-    UpperCmdArgs.push_back("-x");
-    UpperCmdArgs.push_back("124");
-    UpperCmdArgs.push_back("0x8");
-    UpperCmdArgs.push_back("-x");
-    UpperCmdArgs.push_back("124");
-    UpperCmdArgs.push_back("0x80000");
-    for (Arg *A : Args.filtered(options::OPT_r8, options::OPT_default_real_8_f)) {
+  // Handle -fdefault-real-8 (and its alias, -r8) and -fno-default-real-8
+  if (Arg *A = Args.getLastArg(options::OPT_default_real_8_f,
+                               options::OPT_default_real_8_fno)) {
+    const char * fl;
+    // For -f version add -x flag, for -fno add -y
+    if (A->getOption().matches(options::OPT_default_real_8_f)) {
+      fl = "-x";
+    } else {
+      fl = "-y";
+    }
+
+    for (Arg *A : Args.filtered(options::OPT_default_real_8_f,
+                                options::OPT_default_real_8_fno)) {
       A->claim();
     }
-  }
 
-  // Handle -fno-default-real-8
-  if (Args.hasArg(options::OPT_default_real_8_fno)) {
-    UpperCmdArgs.push_back("-y");
+    UpperCmdArgs.push_back(fl);
     UpperCmdArgs.push_back("124");
     UpperCmdArgs.push_back("0x8");
-    UpperCmdArgs.push_back("-y");
+    UpperCmdArgs.push_back(fl);
     UpperCmdArgs.push_back("124");
     UpperCmdArgs.push_back("0x80000");
-    for (Arg *A : Args.filtered(options::OPT_default_real_8_fno)) {
-      A->claim();
-    }
   }
 
-  // Process and claim -i8 argument
-  if (Args.hasArg(options::OPT_i)) {
+  // Process and claim -i8/-fdefault-integer-8/-fno-default-integer-8 argument
+  if (Arg *A = Args.getLastArg(options::OPT_default_integer_8_f,
+                               options::OPT_default_integer_8_fno,
+                               options::OPT_i)) {
     bool hasI8 = false;
-    for (Arg *A: Args.filtered(options::OPT_i)) {
+    const char * fl;
+
+    if (A->getOption().matches(options::OPT_default_integer_8_f)) {
+      hasI8 = true;
+    } else if (A->getOption().matches(options::OPT_i)) {
       if (StringRef(A->getValue()) == "8") {
         A->claim();
         hasI8 = true;
       }
     }
+
     if (hasI8) {
-      UpperCmdArgs.push_back("-x");
-      UpperCmdArgs.push_back("124");
-      UpperCmdArgs.push_back("0x10");
+      fl = "-x";
+    } else {
+      fl = "-y";
     }
+
+    for (Arg *A: Args.filtered(options::OPT_default_integer_8_f,
+                               options::OPT_default_integer_8_fno,
+                               options::OPT_i)) {
+      if (A->getOption().matches(options::OPT_i)) {
+        if (StringRef(A->getValue()) == "8") {
+          A->claim();
+        }
+      } else {
+          A->claim();
+      }
+    }
+
+    UpperCmdArgs.push_back(fl);
+    UpperCmdArgs.push_back("124");
+    UpperCmdArgs.push_back("0x10");
   }
 
   // Set a -x flag for first part of Fortran frontend
