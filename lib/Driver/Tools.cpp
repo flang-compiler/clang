@@ -4091,6 +4091,21 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     CommonCmdArgs.push_back("8");
   }
 
+  // -gdwarf-2
+  for (auto Arg : Args.filtered(options::OPT_gdwarf_2)) {
+    Arg->claim();
+    CommonCmdArgs.push_back("-x");
+    CommonCmdArgs.push_back("120");
+    CommonCmdArgs.push_back("0x200");
+  }
+
+  // -gdwarf-3
+  for (auto Arg : Args.filtered(options::OPT_gdwarf_3)) {
+    Arg->claim();
+    CommonCmdArgs.push_back("-x");
+    CommonCmdArgs.push_back("120");
+    CommonCmdArgs.push_back("0x4000");
+  }
 
   // -Mipa has no effect
   if (Arg *A = Args.getLastArg(options::OPT_Mipa)) {
