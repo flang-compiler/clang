@@ -271,7 +271,7 @@ static void AddLinkerInputs(const ToolChain &TC, const InputInfoList &Inputs,
     // Add Fortan "main" before the first linker input
     if (!SeenFirstLinkerInput) {
       if (needFortranMain(D, Args)) {
-        CmdArgs.push_back("-lf90main");
+        CmdArgs.push_back("-lflangmain");
       }
       SeenFirstLinkerInput = true;
     }
@@ -294,7 +294,7 @@ static void AddLinkerInputs(const ToolChain &TC, const InputInfoList &Inputs,
   }
 
   if (!SeenFirstLinkerInput && needFortranMain(D, Args)) {
-    CmdArgs.push_back("-lf90main");
+    CmdArgs.push_back("-lflangmain");
   }
 
   // Claim "no Fortran main" arguments
@@ -4366,7 +4366,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   /***** Upper part of the Fortran frontend *****/
 
   // TODO do we need to invoke this under GDB sometimes?
-  const char *UpperExec = Args.MakeArgString(getToolChain().GetProgramPath("pgf901-llvm"));
+  const char *UpperExec = Args.MakeArgString(getToolChain().GetProgramPath("flang1"));
 
   UpperCmdArgs.push_back("-opt"); UpperCmdArgs.push_back(Args.MakeArgString(OptOStr));
   UpperCmdArgs.push_back("-terse"); UpperCmdArgs.push_back("1");
@@ -4548,7 +4548,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
 
   /***** Lower part of Fortran frontend *****/
 
-  const char *LowerExec = Args.MakeArgString(getToolChain().GetProgramPath("pgf902-llvm"));
+  const char *LowerExec = Args.MakeArgString(getToolChain().GetProgramPath("flang2"));
 
   // TODO FLANG arg handling
   LowerCmdArgs.push_back("-fn"); LowerCmdArgs.push_back(Input.getBaseInput());

@@ -690,8 +690,8 @@ void ToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
   if (staticFlangLibs) {
     CmdArgs.push_back("-Bstatic");
   }
-  CmdArgs.push_back("-lpgf90");
-  CmdArgs.push_back("-lpgc");
+  CmdArgs.push_back("-lflang");
+  CmdArgs.push_back("-lflangrti");
   if( useOpenMP ) {
     CmdArgs.push_back("-lomp");
   }
