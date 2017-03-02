@@ -2230,9 +2230,9 @@ defm d_lines_as_code : BooleanFFlag<"d-lines-as-code">, Group<gfortran_Group>;
 defm d_lines_as_comments : BooleanFFlag<"d-lines-as-comments">, Group<gfortran_Group>;
 defm default_double_8 : BooleanFFlag<"default-double-8">, Group<gfortran_Group>;
 defm default_integer_8 : BooleanFFlag<"default-integer-8">, Group<gfortran_Group>,
-  HelpText<"Set the default integer type to an 8 byte wide type">;
+  HelpText<"Treat INTEGER and LOGICAL as INTEGER*8 and LOGICAL*8">;
 defm default_real_8 : BooleanFFlag<"default-real-8">, Group<gfortran_Group>,
-  HelpText<"Set the default real type to an 8 byte wide type">;
+  HelpText<"Treat REAL as REAL*8">;
 defm dollar_ok : BooleanFFlag<"dollar-ok">, Group<gfortran_Group>;
 defm dump_fortran_optimized : BooleanFFlag<"dump-fortran-optimized">, Group<gfortran_Group>;
 defm dump_fortran_original : BooleanFFlag<"dump-fortran-original">, Group<gfortran_Group>;
