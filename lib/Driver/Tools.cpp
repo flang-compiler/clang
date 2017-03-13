@@ -4351,6 +4351,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
       }
     }
   }
+  unsigned OptLevel = std::stoi(OptOStr.str());
 
   if (Arg *A = Args.getLastArg(options::OPT_g_Group)) {
     // pass -g to lower
@@ -4389,6 +4390,23 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   UpperCmdArgs.push_back("-x"); UpperCmdArgs.push_back("47"); UpperCmdArgs.push_back("0x08");
   UpperCmdArgs.push_back("-x"); UpperCmdArgs.push_back("48"); UpperCmdArgs.push_back("4608");
   UpperCmdArgs.push_back("-x"); UpperCmdArgs.push_back("49"); UpperCmdArgs.push_back("0x100");
+  if (OptLevel >= 2) {
+    UpperCmdArgs.push_back("-x");
+    UpperCmdArgs.push_back("70");
+    UpperCmdArgs.push_back("0x6c00");
+    UpperCmdArgs.push_back("-x");
+    UpperCmdArgs.push_back("119");
+    UpperCmdArgs.push_back("0x10000000");
+    UpperCmdArgs.push_back("-x");
+    UpperCmdArgs.push_back("129");
+    UpperCmdArgs.push_back("2");
+    UpperCmdArgs.push_back("-x");
+    UpperCmdArgs.push_back("47");
+    UpperCmdArgs.push_back("0x400000");
+    UpperCmdArgs.push_back("-x");
+    UpperCmdArgs.push_back("52");
+    UpperCmdArgs.push_back("2");
+  }
 
   // Add system include arguments.
   getToolChain().AddFlangSystemIncludeArgs(Args, UpperCmdArgs);
