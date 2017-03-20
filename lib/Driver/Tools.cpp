@@ -4145,36 +4145,13 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
 
   // Process and claim -i8/-fdefault-integer-8/-fno-default-integer-8 argument
   if (Arg *A = Args.getLastArg(options::OPT_default_integer_8_f,
-                               options::OPT_default_integer_8_fno,
-                               options::OPT_i)) {
-    bool hasI8 = false;
+                               options::OPT_default_integer_8_fno)) {
     const char * fl;
 
     if (A->getOption().matches(options::OPT_default_integer_8_f)) {
-      hasI8 = true;
-    } else if (A->getOption().matches(options::OPT_i)) {
-      if (StringRef(A->getValue()) == "8") {
-        A->claim();
-        hasI8 = true;
-      }
-    }
-
-    if (hasI8) {
       fl = "-x";
     } else {
       fl = "-y";
-    }
-
-    for (Arg *A: Args.filtered(options::OPT_default_integer_8_f,
-                               options::OPT_default_integer_8_fno,
-                               options::OPT_i)) {
-      if (A->getOption().matches(options::OPT_i)) {
-        if (StringRef(A->getValue()) == "8") {
-          A->claim();
-        }
-      } else {
-          A->claim();
-      }
     }
 
     UpperCmdArgs.push_back(fl);
