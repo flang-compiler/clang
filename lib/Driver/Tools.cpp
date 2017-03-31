@@ -4091,6 +4091,13 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     CommonCmdArgs.push_back("8");
   }
 
+  // -g should produce DWARFv2
+  for (auto Arg : Args.filtered(options::OPT_g_Flag)) {
+    CommonCmdArgs.push_back("-x");
+    CommonCmdArgs.push_back("120");
+    CommonCmdArgs.push_back("0x200");
+  }
+
   // -gdwarf-2
   for (auto Arg : Args.filtered(options::OPT_gdwarf_2)) {
     Arg->claim();
