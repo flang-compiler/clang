@@ -2479,7 +2479,11 @@ def staticFlangLibs: Flag<["-"], "static-flang-libs">, Group<gfortran_Group>,
 def noFlangLibs: Flag<["-"], "no-flang-libs">, Group<gfortran_Group>,
   HelpText<"Do not link against Flang libraries">;
 def r8: Flag<["-"], "r8">, Group<gfortran_Group>,
-  Alias<default_real_8_f>;
+  Alias<default_real_8_f>,
+  HelpText<"Treat REAL as REAL*8">;
+def i8: Flag<["-"], "i8">, Group<gfortran_Group>,
+  Alias<default_integer_8_f>,
+  HelpText<"Treat INTEGER and LOGICAL as INTEGER*8 and LOGICAL*8">;
 def no_fortran_main: Flag<["-"], "fno-fortran-main">, Group<gfortran_Group>,
   HelpText<"Don't link in Fortran main">;
 def : Flag<["-"], "Mnomain">, Group<gfortran_Group>,
