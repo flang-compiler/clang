@@ -4268,20 +4268,20 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     CommonCmdArgs.push_back("2");
   }
 
-  // Treat backslashes as escape characters, just like C does
-  for (auto Arg : Args.filtered(options::OPT_Mbackslash_on, options::OPT_backslash_fno)) {
+  // Treat backslashes as regular characters
+  for (auto Arg : Args.filtered(options::OPT_fnobackslash)) {
     Arg->claim();
     CommonCmdArgs.push_back("-x");
     CommonCmdArgs.push_back("124");
-    CommonCmdArgs.push_back("0x4");
+    CommonCmdArgs.push_back("0x40");
   }
 
-  // Treat backslashes as regular characters
-  for (auto Arg : Args.filtered(options::OPT_Mbackslash_off, options::OPT_backslash_f)) {
+  // Treat backslashes as C-style escape characters
+  for (auto Arg : Args.filtered(options::OPT_fbackslash)) {
     Arg->claim();
     CommonCmdArgs.push_back("-y");
     CommonCmdArgs.push_back("124");
-    CommonCmdArgs.push_back("0x4");
+    CommonCmdArgs.push_back("0x40");
   }
 
   // handle OpemMP options
