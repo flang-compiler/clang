@@ -2358,8 +2358,10 @@ defm aggressive_function_elimination : BooleanFFlag<"aggressive-function-elimina
 defm align_commons : BooleanFFlag<"align-commons">, Group<gfortran_Group>;
 defm all_intrinsics : BooleanFFlag<"all-intrinsics">, Group<gfortran_Group>;
 defm automatic : BooleanFFlag<"automatic">, Group<gfortran_Group>;
-defm backslash : BooleanFFlag<"backslash">, Group<gfortran_Group>,
+def fbackslash: Flag<["-"], "fbackslash">, Group<gfortran_Group>,
   HelpText<"Treat backslash as C-style escape character">;
+def fnobackslash: Flag<["-"], "fno-backslash">, Group<gfortran_Group>,
+  HelpText<"Treat backslash like any other character in character strings">;
 defm backtrace : BooleanFFlag<"backtrace">, Group<gfortran_Group>;
 defm bounds_check : BooleanFFlag<"bounds-check">, Group<gfortran_Group>;
 defm check_array_temporaries : BooleanFFlag<"check-array-temporaries">, Group<gfortran_Group>;
@@ -2472,8 +2474,10 @@ def Mbyteswapio: Flag<["-"], "Mbyteswapio">, Group<gfortran_Group>,
   HelpText<"Swap byte-order for unformatted input/output">;
 def byteswapio: Flag<["-"], "byteswapio">, Group<gfortran_Group>,
   HelpText<"Swap byte-order for unformatted input/output">;
-defm Mbackslash: BooleanMFlag<"backslash">, Group<gfortran_Group>,
+def Mbackslash: Flag<["-"], "Mbackslash">, Group<gfortran_Group>, Alias<fnobackslash>,
   HelpText<"Treat backslash like any other character in character strings">;
+def Mnobackslash: Flag<["-"], "Mnobackslash">, Group<gfortran_Group>, Alias<fbackslash>,
+  HelpText<"Treat backslash as C-style escape character">;
 def staticFlangLibs: Flag<["-"], "static-flang-libs">, Group<gfortran_Group>,
   HelpText<"Link using static Flang libraries">;
 def noFlangLibs: Flag<["-"], "no-flang-libs">, Group<gfortran_Group>,
