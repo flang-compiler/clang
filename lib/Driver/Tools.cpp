@@ -996,6 +996,10 @@ arm::FloatABI arm::getARMFloatABI(const ToolChain &TC, const ArgList &Args) {
       }
       break;
 
+    case llvm::Triple::OpenBSD:
+      ABI = FloatABI::Soft;
+      break;
+
     default:
       switch (Triple.getEnvironment()) {
       case llvm::Triple::GNUEABIHF:
@@ -1285,6 +1289,8 @@ void Clang::AddARMTargetArgs(const llvm::Triple &Triple, const ArgList &Args,
     default:
       if (Triple.getOS() == llvm::Triple::NetBSD)
         ABIName = "apcs-gnu";
+      else if (Triple.getOS() == llvm::Triple::OpenBSD)
+        ABIName = "aapcs-linux";
       else
         ABIName = "aapcs";
       break;
@@ -3879,9 +3885,10 @@ ParsePICArgs(const ToolChain &ToolChain, const ArgList &Args) {
   // OpenBSD-specific defaults for PIE
   if (Triple.getOS() == llvm::Triple::OpenBSD) {
     switch (ToolChain.getArch()) {
+    case llvm::Triple::arm:
+    case llvm::Triple::aarch64:
     case llvm::Triple::mips64:
     case llvm::Triple::mips64el:
-    case llvm::Triple::sparcel:
     case llvm::Triple::x86:
     case llvm::Triple::x86_64:
       IsPICLevelTwo = false; // "-fpie"
@@ -3889,6 +3896,7 @@ ParsePICArgs(const ToolChain &ToolChain, const ArgList &Args) {
 
     case llvm::Triple::ppc:
     case llvm::Triple::sparc:
+    case llvm::Triple::sparcel:
     case llvm::Triple::sparcv9:
       IsPICLevelTwo = true; // "-fPIE"
       break;
@@ -9690,12 +9698,12 @@ void openbsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("__start");
   }
 
+  CmdArgs.push_back("--eh-frame-hdr");
   if (Args.hasArg(options::OPT_static)) {
     CmdArgs.push_back("-Bstatic");
   } else {
     if (Args.hasArg(options::OPT_rdynamic))
       CmdArgs.push_back("-export-dynamic");
-    CmdArgs.push_back("--eh-frame-hdr");
     CmdArgs.push_back("-Bdynamic");
     if (Args.hasArg(options::OPT_shared)) {
       CmdArgs.push_back("-shared");
