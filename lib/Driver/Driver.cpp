@@ -112,6 +112,7 @@ void Driver::setDriverModeFromOption(StringRef Opt) {
   if (!Opt.startswith(OptName))
     return;
   StringRef Value = Opt.drop_front(OptName.size());
+
   const unsigned M = llvm::StringSwitch<unsigned>(Value)
                          .Case("gcc", GCCMode)
                          .Case("g++", GXXMode)
