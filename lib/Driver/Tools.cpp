@@ -4642,10 +4642,6 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   CmdArgs.push_back("-triple");
   CmdArgs.push_back(Args.MakeArgString(TripleStr));
 
-  // For FLANG, we want to pass -O1 as the default, iff no -O was given
-  if (IsFlang && (!Args.getLastArg(options::OPT_O_Group)))
-      CmdArgs.push_back("-O1");
-
   if (IsCuda) {
     // We have to pass the triple of the host if compiling for a CUDA device and
     // vice-versa.
