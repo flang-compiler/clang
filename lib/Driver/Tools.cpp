@@ -4387,18 +4387,18 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   // Handle -fdefault-real-8 (and its alias, -r8) and -fno-default-real-8
-  if (Arg *A = Args.getLastArg(options::OPT_default_real_8_f,
-                               options::OPT_default_real_8_fno)) {
+  if (Arg *A = Args.getLastArg(options::OPT_f_default_real_8,
+                               options::OPT_fno_default_real_8)) {
     const char * fl;
     // For -f version add -x flag, for -fno add -y
-    if (A->getOption().matches(options::OPT_default_real_8_f)) {
+    if (A->getOption().matches(options::OPT_f_default_real_8)) {
       fl = "-x";
     } else {
       fl = "-y";
     }
 
-    for (Arg *A : Args.filtered(options::OPT_default_real_8_f,
-                                options::OPT_default_real_8_fno)) {
+    for (Arg *A : Args.filtered(options::OPT_f_default_real_8,
+                                options::OPT_fno_default_real_8)) {
       A->claim();
     }
 
@@ -4411,11 +4411,11 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   // Process and claim -i8/-fdefault-integer-8/-fno-default-integer-8 argument
-  if (Arg *A = Args.getLastArg(options::OPT_default_integer_8_f,
-                               options::OPT_default_integer_8_fno)) {
+  if (Arg *A = Args.getLastArg(options::OPT_f_default_integer_8,
+                               options::OPT_fno_default_integer_8)) {
     const char * fl;
 
-    if (A->getOption().matches(options::OPT_default_integer_8_f)) {
+    if (A->getOption().matches(options::OPT_f_default_integer_8)) {
       fl = "-x";
     } else {
       fl = "-y";
