@@ -4727,6 +4727,19 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     UpperCmdArgs.push_back("-extend");
   }
 
+  for (auto Arg : Args.filtered(options::OPT_ffixed_line_length_VALUE)) {
+    StringRef Value = Arg->getValue();
+    if (Value == "72") {
+      Arg->claim();
+    } else if (Value == "132") {
+      Arg->claim();
+      UpperCmdArgs.push_back("-extend");
+    } else {
+      getToolChain().getDriver().Diag(diag::err_drv_unsupported_fixed_line_length)
+        << Arg->getAsString(Args);
+    }
+  }
+
   // Add user-defined include directories
   for (auto Arg : Args.filtered(options::OPT_I)) {
     Arg->claim();
