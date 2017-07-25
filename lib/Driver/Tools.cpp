@@ -4123,6 +4123,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   ArgStringList CommonCmdArgs;
   ArgStringList UpperCmdArgs;
   ArgStringList LowerCmdArgs;
+  bool NeedIEEE = true;
 
   // Check number of inputs for sanity. We need at least one input.
   assert(Inputs.size() >= 1 && "Must have at least one input.");
@@ -4145,15 +4146,31 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   C.addTempFile(ILMFile);
 
   /***** Process common args *****/
+
+  // Override IEEE mode if needed
+  if (Args.hasArg(options::OPT_Ofast) ||
+      Args.hasArg(options::OPT_ffast_math) ||
+      Args.hasArg(options::OPT_fno_fast_math) ||
+      Args.hasArg(options::OPT_Kieee_on) ||
+      Args.hasArg(options::OPT_Kieee_off)) {
+    auto A = Args.getLastArg(options::OPT_Ofast,
+                             options::OPT_ffast_math,
+                             options::OPT_fno_fast_math,
+                             options::OPT_Kieee_on,
+                             options::OPT_Kieee_off);
+    auto Opt = A->getOption();
+    if (Opt.matches(options::OPT_Ofast) ||
+        Opt.matches(options::OPT_ffast_math) ||
+        Opt.matches(options::OPT_Kieee_off)) {
+      NeedIEEE = false;
+    }
+  }
+
   // -Kieee is on by default
   if (!Args.hasArg(options::OPT_Kieee_off)) {
-    // Enable IEEE arithmetic
     CommonCmdArgs.push_back("-y"); // Common: -y 129 2
     CommonCmdArgs.push_back("129");
     CommonCmdArgs.push_back("2");
-    // Lower: -ieee 1
-    LowerCmdArgs.push_back("-ieee");
-    LowerCmdArgs.push_back("1");
     // Lower: -x 6 0x100
     LowerCmdArgs.push_back("-x");
     LowerCmdArgs.push_back("6");
@@ -4174,9 +4191,6 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
       Arg->claim();
     }
   } else {
-    // Lower: -ieee 0
-    LowerCmdArgs.push_back("-ieee");
-    LowerCmdArgs.push_back("0");
     for (auto Arg : Args.filtered(options::OPT_Kieee_off)) {
       Arg->claim();
     }
@@ -4602,10 +4616,22 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     LowerCmdArgs.push_back("-debug");
   }
 
-  if (Arg *A = Args.getLastArg(options::OPT_ffast_math)) {
-    LowerCmdArgs.push_back("-x");
+  if (Arg *A = Args.getLastArg(options::OPT_ffast_math, options::OPT_fno_fast_math)) {
+    if (A->getOption().matches(options::OPT_ffast_math)) {
+      LowerCmdArgs.push_back("-x");
+    } else {
+      LowerCmdArgs.push_back("-y");
+    }
     LowerCmdArgs.push_back("216");
     LowerCmdArgs.push_back("1");
+  }
+
+  // IEEE compatibility mode
+  LowerCmdArgs.push_back("-ieee");
+  if (NeedIEEE) {
+    LowerCmdArgs.push_back("1");
+  } else {
+    LowerCmdArgs.push_back("0");
   }
 
   /***** Upper part of the Fortran frontend *****/
