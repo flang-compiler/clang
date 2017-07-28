@@ -4701,11 +4701,15 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
       switch (A->getOption().getID()) {
         default:
           llvm_unreachable("missed a case");
+         case options::OPT_fixed_form_on:
+         case options::OPT_free_form_off:
          case options::OPT_Mfixed:
          case options::OPT_Mfree_off:
          case options::OPT_Mfreeform_off:
            UpperCmdArgs.push_back("-nofreeform");
            break;
+         case options::OPT_free_form_on:
+         case options::OPT_fixed_form_off:
          case options::OPT_Mfree_on:
          case options::OPT_Mfreeform_on:
            UpperCmdArgs.push_back("-freeform");
