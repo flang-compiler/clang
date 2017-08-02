@@ -2451,16 +2451,27 @@ defm Mstride0: BooleanMFlag<"stride0">, Group<gfortran_Group>;
 defm Mrecursive: BooleanMFlag<"recursive">, Group<gfortran_Group>;
 defm Mreentrant: BooleanMFlag<"reentrant">, Group<gfortran_Group>;
 defm Mbounds: BooleanMFlag<"bounds">, Group<gfortran_Group>;
-defm Mdaz: BooleanMFlag<"daz">, Group<gfortran_Group>,
-  HelpText<"Treat denormalized numbers as zero">;
-defm Kieee : BooleanKFlag<"ieee">, Group<gfortran_Group>,
-  HelpText<"Enable or disable IEEE division">;
+def Mdaz_on: Flag<["-"], "Mdaz">, Group<gfortran_Group>,
+  HelpText<"Treat denormalized numbers as zero">,
+  Flags<[HelpHidden]>;
+def Mdaz_off: Flag<["-"], "Mnodaz">, Group<gfortran_Group>,
+  HelpText<"Disable treating denormalized numbers as zero">,
+  Flags<[HelpHidden]>;
+def Kieee_on : Flag<["-"], "Kieee">, Group<gfortran_Group>,
+  HelpText<"Enable IEEE division">,
+  Flags<[HelpHidden]>;
+def Kieee_off : Flag<["-"], "Knoieee">, Group<gfortran_Group>,
+  HelpText<"Disable IEEE division">,
+  Flags<[HelpHidden]>;
 def Mextend : Flag<["-"], "Mextend">, Group<gfortran_Group>,
-  HelpText<"Allow lines up to 132 characters in Fortran sources">;
+  HelpText<"Allow lines up to 132 characters in Fortran sources">,
+  Flags<[HelpHidden]>;
 def Mpreprocess : Flag<["-"], "Mpreprocess">, Group<gfortran_Group>,
-  HelpText<"Preprocess Fortran files">;
+  HelpText<"Preprocess Fortran files">,
+  Flags<[HelpHidden]>;
 def Mstandard: Flag<["-"], "Mstandard">, Group<gfortran_Group>,
-  HelpText<"Check Fortran standard conformance">;
+  HelpText<"Check Fortran standard conformance">,
+  Flags<[HelpHidden]>;
 def Mchkptr: Flag<["-"], "Mchkptr">, Group<gfortran_Group>;
 def Minline: Flag<["-"], "Minline">, Group<gfortran_Group>;
 def fma: Flag<["-"], "fma">, Group<gfortran_Group>,
