@@ -2325,6 +2325,8 @@ defm devirtualize_speculatively : BooleanFFlag<"devirtualize-speculatively">,
 // gfortran options that we recognize in the driver and pass along when
 // invoking GCC to compile Fortran code.
 def gfortran_Group : OptionGroup<"gfortran Group">;
+def pgi_fortran_Group : OptionGroup<"PGI Fortran compatibility Group">,
+  Flags<[HelpHidden]>;
 
 // Generic gfortran options.
 def A_DASH : Joined<["-"], "A-">, Group<gfortran_Group>;
@@ -2480,17 +2482,23 @@ def nofma: Flag<["-"], "nofma">, Group<gfortran_Group>,
   HelpText<"Disable generation of FMA instructions">;
 defm Mfma: BooleanMFlag<"fma">, Group<gfortran_Group>,
   HelpText<"Enable generation of FMA instructions">;
-def mp: Flag<["-"], "mp">, Group<gfortran_Group>,
+def mp: Flag<["-"], "mp">, Group<pgi_fortran_Group>,
   HelpText<"Enable OpenMP">;
-def nomp: Flag<["-"], "nomp">, Group<gfortran_Group>,
+def nomp: Flag<["-"], "nomp">, Group<pgi_fortran_Group>,
   HelpText<"Do not link with OpenMP library libomp">;
-def pgf90libs: Flag<["-"], "pgf90libs">, Group<gfortran_Group>;
-defm Mflushz: BooleanMFlag<"flushz">, Group<gfortran_Group>,
+def pgf90libs: Flag<["-"], "pgf90libs">, Group<pgi_fortran_Group>;
+def Mflushz_on: Flag<["-"], "Mflushz">, Group<pgi_fortran_Group>,
   HelpText<"Set SSE to flush-to-zero mode">;
-defm Msave: BooleanMFlag<"save">, Group<gfortran_Group>,
+def Mflushz_off: Flag<["-"], "Mnoflushz">, Group<pgi_fortran_Group>,
+  HelpText<"Disabling setting SSE to flush-to-zero mode">;
+def Msave_on: Flag<["-"], "Msave">, Group<pgi_fortran_Group>,
   HelpText<"Assume all Fortran variables have SAVE attribute">;
-defm Mcache_align: BooleanMFlag<"cache_align">, Group<gfortran_Group>,
+def Msave_off: Flag<["-"], "Mnosave">, Group<pgi_fortran_Group>,
+  HelpText<"Assume no Fortran variables have SAVE attribute">;
+def Mcache_align_on: Flag<["-"], "Mcache_align">, Group<pgi_fortran_Group>,
   HelpText<"Align large objects on cache-line boundaries">;
+def Mcache_align_off: Flag<["-"], "Mnocache_align">, Group<pgi_fortran_Group>,
+  HelpText<"Disable aligning large objects on cache-line boundaries">;
 def ModuleDir : Separate<["-"], "module">, Group<gfortran_Group>,
   HelpText<"Fortran module path">;
 def Minform_EQ : Joined<["-"], "Minform=">,

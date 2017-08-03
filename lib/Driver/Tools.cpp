@@ -4147,10 +4147,6 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   /***** Process common args *****/
   // -Kieee is on by default
   if (!Args.hasArg(options::OPT_Kieee_off)) {
-    // Enable IEEE arithmetic
-    CommonCmdArgs.push_back("-y"); // Common: -y 129 2
-    CommonCmdArgs.push_back("129");
-    CommonCmdArgs.push_back("2");
     // Lower: -ieee 1
     LowerCmdArgs.push_back("-ieee");
     LowerCmdArgs.push_back("1");
@@ -4477,20 +4473,23 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     }
   }
 
-  // For -Mflushz set -x 129 2 for second part of Fortran frontend
-  for (Arg *A: Args.filtered(options::OPT_Mflushz_on)) {
-    A->claim();
-    LowerCmdArgs.push_back("-x");
-    LowerCmdArgs.push_back("129");
-    LowerCmdArgs.push_back("2");
-  }
-
-  // For -Mnoflushz set -y 129 2 for second part of Fortran frontend
-  for (Arg *A: Args.filtered(options::OPT_Mflushz_off)) {
-    A->claim();
+  // Flush to zero mode
+  // Disabled by default, but can be enabled by a switch
+  if (Args.hasArg(options::OPT_Mflushz_on)) {
+    // For -Mflushz set -x 129 2 for second part of Fortran frontend
+    for (Arg *A: Args.filtered(options::OPT_Mflushz_on)) {
+      A->claim();
+      LowerCmdArgs.push_back("-x");
+      LowerCmdArgs.push_back("129");
+      LowerCmdArgs.push_back("2");
+    }
+  } else {
     LowerCmdArgs.push_back("-y");
     LowerCmdArgs.push_back("129");
     LowerCmdArgs.push_back("2");
+    for (Arg *A: Args.filtered(options::OPT_Mflushz_off)) {
+      A->claim();
+    }
   }
 
   // Enable FMA
