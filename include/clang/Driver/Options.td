@@ -2354,6 +2354,8 @@ def fmax_stack_var_size_EQ : Joined<["-"], "fmax-stack-var-size=">, Group<gfortr
 def fmax_subrecord_length_EQ : Joined<["-"], "fmax-subrecord-length=">, Group<gfortran_Group>;
 def frecord_marker_EQ : Joined<["-"], "frecord-marker=">, Group<gfortran_Group>;
 
+// Define a group for Fortran source format
+def fortran_format_Group : OptionGroup<"Fortran format Group">, Group<gfortran_Group>;
 // "f" flags for gfortran.
 defm aggressive_function_elimination : BooleanFFlag<"aggressive-function-elimination">, Group<gfortran_Group>;
 defm align_commons : BooleanFFlag<"align-commons">, Group<gfortran_Group>;
@@ -2384,9 +2386,15 @@ defm dump_fortran_original : BooleanFFlag<"dump-fortran-original">, Group<gfortr
 defm dump_parse_tree : BooleanFFlag<"dump-parse-tree">, Group<gfortran_Group>;
 defm external_blas : BooleanFFlag<"external-blas">, Group<gfortran_Group>;
 defm f2c : BooleanFFlag<"f2c">, Group<gfortran_Group>;
-defm fixed_form : BooleanFFlag<"fixed-form">, Group<gfortran_Group>;
-defm free_form : BooleanFFlag<"free-form">, Group<gfortran_Group>;
-defm frontend_optimize : BooleanFFlag<"frontend-optimize">, Group<gfortran_Group>;
+def fixed_form_on : Flag<["-"], "ffixed-form">, Group<fortran_format_Group>,
+  HelpText<"Enable fixed-form format for Fortran">;
+def fixed_form_off : Flag<["-"], "fno-fixed-form">, Group<fortran_format_Group>,
+  HelpText<"Disable fixed-form format for Fortran">;
+def free_form_on : Flag<["-"], "ffree-form">, Group<fortran_format_Group>,
+  HelpText<"Enable free-form format for Fortran">;
+def free_form_off : Flag<["-"], "fno-free-form">, Group<fortran_format_Group>,
+  HelpText<"Disable free-form format for Fortran">;
+defm frontend_optimize : BooleanFFlag<"frontend-optimize">, Group<fortran_format_Group>;
 defm implicit_none : BooleanFFlag<"implicit-none">, Group<gfortran_Group>;
 defm init_local_zero : BooleanFFlag<"init-local-zero">, Group<gfortran_Group>;
 defm integer_4_integer_8 : BooleanFFlag<"integer-4-integer-8">, Group<gfortran_Group>;
@@ -2422,14 +2430,21 @@ multiclass BooleanMFlag<string name> {
   def _off : Flag<["-"], "Mno"#name>;
 }
 
-// Define a group for Fortran source format
-def fortran_format_Group : OptionGroup<"Fortran format Group">, Group<gfortran_Group>;
 def Mfixed : Flag<["-"], "Mfixed">, Group<fortran_format_Group>,
-  HelpText<"Force fixed-form format Fortran">;
-defm Mfree: BooleanMFlag<"free">, Group<fortran_format_Group>,
-  HelpText<"Enable or disable free-form format for Fortran">;
-defm Mfreeform: BooleanMFlag<"freeform">, Group<fortran_format_Group>,
-  HelpText<"Enable or disable free-form format for Fortran">;
+  HelpText<"Force fixed-form format Fortran">,
+  Flags<[HelpHidden]>;
+def Mfree_on: Flag<["-"], "Mfree">, Group<fortran_format_Group>,
+  HelpText<"Enable free-form format for Fortran">,
+  Flags<[HelpHidden]>;
+def Mfree_off: Flag<["-"], "Mnofree">, Group<fortran_format_Group>,
+  HelpText<"Disable free-form format for Fortran">,
+  Flags<[HelpHidden]>;
+def Mfreeform_on: Flag<["-"], "Mfreeform">, Group<fortran_format_Group>,
+  HelpText<"Enable free-form format for Fortran">,
+  Flags<[HelpHidden]>;
+def Mfreeform_off: Flag<["-"], "Mnofreeform">, Group<fortran_format_Group>,
+  HelpText<"Disable free-form format for Fortran">,
+  Flags<[HelpHidden]>;
 
 def Mipa: Joined<["-"], "Mipa">, Group<gfortran_Group>;
 def Mstackarrays: Joined<["-"], "Mstack_arrays">, Group<gfortran_Group>;
@@ -2440,16 +2455,27 @@ defm Mstride0: BooleanMFlag<"stride0">, Group<gfortran_Group>;
 defm Mrecursive: BooleanMFlag<"recursive">, Group<gfortran_Group>;
 defm Mreentrant: BooleanMFlag<"reentrant">, Group<gfortran_Group>;
 defm Mbounds: BooleanMFlag<"bounds">, Group<gfortran_Group>;
-defm Mdaz: BooleanMFlag<"daz">, Group<gfortran_Group>,
-  HelpText<"Treat denormalized numbers as zero">;
-defm Kieee : BooleanKFlag<"ieee">, Group<gfortran_Group>,
-  HelpText<"Enable or disable IEEE division">;
+def Mdaz_on: Flag<["-"], "Mdaz">, Group<gfortran_Group>,
+  HelpText<"Treat denormalized numbers as zero">,
+  Flags<[HelpHidden]>;
+def Mdaz_off: Flag<["-"], "Mnodaz">, Group<gfortran_Group>,
+  HelpText<"Disable treating denormalized numbers as zero">,
+  Flags<[HelpHidden]>;
+def Kieee_on : Flag<["-"], "Kieee">, Group<gfortran_Group>,
+  HelpText<"Enable IEEE division">,
+  Flags<[HelpHidden]>;
+def Kieee_off : Flag<["-"], "Knoieee">, Group<gfortran_Group>,
+  HelpText<"Disable IEEE division">,
+  Flags<[HelpHidden]>;
 def Mextend : Flag<["-"], "Mextend">, Group<gfortran_Group>,
-  HelpText<"Allow lines up to 132 characters in Fortran sources">;
+  HelpText<"Allow lines up to 132 characters in Fortran sources">,
+  Flags<[HelpHidden]>;
 def Mpreprocess : Flag<["-"], "Mpreprocess">, Group<gfortran_Group>,
-  HelpText<"Preprocess Fortran files">;
+  HelpText<"Preprocess Fortran files">,
+  Flags<[HelpHidden]>;
 def Mstandard: Flag<["-"], "Mstandard">, Group<gfortran_Group>,
-  HelpText<"Check Fortran standard conformance">;
+  HelpText<"Check Fortran standard conformance">,
+  Flags<[HelpHidden]>;
 def Mchkptr: Flag<["-"], "Mchkptr">, Group<gfortran_Group>;
 def Minline: Flag<["-"], "Minline">, Group<gfortran_Group>;
 def fma: Flag<["-"], "fma">, Group<gfortran_Group>,
