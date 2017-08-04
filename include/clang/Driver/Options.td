@@ -2370,10 +2370,14 @@ defm cray_pointer : BooleanFFlag<"cray-pointer">, Group<gfortran_Group>;
 defm d_lines_as_code : BooleanFFlag<"d-lines-as-code">, Group<gfortran_Group>;
 defm d_lines_as_comments : BooleanFFlag<"d-lines-as-comments">, Group<gfortran_Group>;
 defm default_double_8 : BooleanFFlag<"default-double-8">, Group<gfortran_Group>;
-defm default_integer_8 : BooleanFFlag<"default-integer-8">, Group<gfortran_Group>,
+def f_default_integer_8: Flag<["-"], "fdefault-integer-8">, Group<gfortran_Group>,
   HelpText<"Treat INTEGER and LOGICAL as INTEGER*8 and LOGICAL*8">;
-defm default_real_8 : BooleanFFlag<"default-real-8">, Group<gfortran_Group>,
+def fno_default_integer_8: Flag<["-"], "fno-default-integer-8">, Group<gfortran_Group>,
+  HelpText<"Disable treating INTEGER and LOGICAL as INTEGER*8 and LOGICAL*8">;
+def f_default_real_8: Flag<["-"], "fdefault-real-8">, Group<gfortran_Group>,
   HelpText<"Treat REAL as REAL*8">;
+def fno_default_real_8: Flag<["-"], "fno-default-real-8">, Group<gfortran_Group>,
+  HelpText<"Disable treating REAL as REAL*8">;
 defm dollar_ok : BooleanFFlag<"dollar-ok">, Group<gfortran_Group>;
 defm dump_fortran_optimized : BooleanFFlag<"dump-fortran-optimized">, Group<gfortran_Group>;
 defm dump_fortran_original : BooleanFFlag<"dump-fortran-original">, Group<gfortran_Group>;
@@ -2484,10 +2488,10 @@ def staticFlangLibs: Flag<["-"], "static-flang-libs">, Group<gfortran_Group>,
 def noFlangLibs: Flag<["-"], "no-flang-libs">, Group<gfortran_Group>,
   HelpText<"Do not link against Flang libraries">;
 def r8: Flag<["-"], "r8">, Group<gfortran_Group>,
-  Alias<default_real_8_f>,
+  Alias<f_default_real_8>,
   HelpText<"Treat REAL as REAL*8">;
 def i8: Flag<["-"], "i8">, Group<gfortran_Group>,
-  Alias<default_integer_8_f>,
+  Alias<f_default_integer_8>,
   HelpText<"Treat INTEGER and LOGICAL as INTEGER*8 and LOGICAL*8">;
 def no_fortran_main: Flag<["-"], "fno-fortran-main">, Group<gfortran_Group>,
   HelpText<"Don't link in Fortran main">;
