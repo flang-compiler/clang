@@ -982,7 +982,12 @@ void CXXNameMangler::mangleFloat(const llvm::APFloat &f) {
     unsigned digitBitIndex = 4 * (numCharacters - stringIndex - 1);
 
     // Project out 4 bits starting at 'digitIndex'.
-    llvm::integerPart hexDigit
+#if LLVM_VERSION_MAJOR > 5
+    uint64_t
+#else
+    llvm::integerPart
+#endif
+        hexDigit
       = valueBits.getRawData()[digitBitIndex / llvm::integerPartWidth];
     hexDigit >>= (digitBitIndex % llvm::integerPartWidth);
     hexDigit &= 0xF;

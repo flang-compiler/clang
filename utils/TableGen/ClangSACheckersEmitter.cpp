@@ -51,7 +51,7 @@ static std::string getParentPackageFullName(const Record *R) {
 static std::string getPackageFullName(const Record *R) {
   std::string name = getParentPackageFullName(R);
   if (!name.empty()) name += ".";
-  return name + R->getValueAsString("PackageName");
+  return name + std::string(R->getValueAsString("PackageName"));
 }
 
 static std::string getCheckerFullName(const Record *R) {
