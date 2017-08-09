@@ -988,8 +988,20 @@ void CXXNameMangler::mangleFloat(const llvm::APFloat &f) {
     llvm::integerPart
 #endif
         hexDigit
-      = valueBits.getRawData()[digitBitIndex / llvm::integerPartWidth];
-    hexDigit >>= (digitBitIndex % llvm::integerPartWidth);
+      = valueBits.getRawData()[digitBitIndex /
+#if LLVM_VERSION_MAJOR > 4
+      64
+#else
+      llvm::integerPartWidth
+#endif
+      ];
+    hexDigit >>= (digitBitIndex %
+#if LLVM_VERSION_MAJOR > 4
+            64
+#else
+            llvm::integerPartWidth
+#endif
+            );
     hexDigit &= 0xF;
 
     // Map that over to a lowercase hex digit.
