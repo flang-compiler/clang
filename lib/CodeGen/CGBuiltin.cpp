@@ -1750,12 +1750,27 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
   case Builtin::BI__atomic_signal_fence:
   case Builtin::BI__c11_atomic_thread_fence:
   case Builtin::BI__c11_atomic_signal_fence: {
-    llvm::SynchronizationScope Scope;
+#if LLVM_VERSION_MAJOR > 4
+    llvm::SyncScope::ID
+#else
+    llvm::SynchronizationScope
+#endif
+        Scope;
     if (BuiltinID == Builtin::BI__atomic_signal_fence ||
         BuiltinID == Builtin::BI__c11_atomic_signal_fence)
-      Scope = llvm::SingleThread;
+      Scope =
+#if LLVM_VERSION_MAJOR > 4
+          llvm::SyncScope::SingleThread;
+#else
+          llvm::SingleThread;
+#endif
     else
-      Scope = llvm::CrossThread;
+      Scope =
+#if LLVM_VERSION_MAJOR > 4
+          llvm::SyncScope::System;
+#else
+          llvm::CrossThread;
+#endif
     Value *Order = EmitScalarExpr(E->getArg(0));
     if (isa<llvm::ConstantInt>(Order)) {
       int ord = cast<llvm::ConstantInt>(Order)->getZExtValue();
@@ -2218,8 +2233,8 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
   case Builtin::BI_setjmpex: {
     if (getTarget().getTriple().isOSMSVCRT()) {
       llvm::Type *ArgTypes[] = {Int8PtrTy, Int8PtrTy};
-      llvm::AttributeSet ReturnsTwiceAttr =
-          AttributeSet::get(getLLVMContext(), llvm::AttributeSet::FunctionIndex,
+      MigAttributeList ReturnsTwiceAttr =
+          MigAttributeList::get(getLLVMContext(), MigAttributeList::FunctionIndex,
                             llvm::Attribute::ReturnsTwice);
       llvm::Constant *SetJmpEx = CGM.CreateRuntimeFunction(
           llvm::FunctionType::get(IntTy, ArgTypes, /*isVarArg=*/false),
@@ -2238,8 +2253,8 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
   }
   case Builtin::BI_setjmp: {
     if (getTarget().getTriple().isOSMSVCRT()) {
-      llvm::AttributeSet ReturnsTwiceAttr =
-          AttributeSet::get(getLLVMContext(), llvm::AttributeSet::FunctionIndex,
+      MigAttributeList ReturnsTwiceAttr =
+          MigAttributeList::get(getLLVMContext(), MigAttributeList::FunctionIndex,
                             llvm::Attribute::ReturnsTwice);
       llvm::Value *Buf = Builder.CreateBitOrPointerCast(
           EmitScalarExpr(E->getArg(0)), Int8PtrTy);
@@ -4474,7 +4489,11 @@ Value *CodeGenFunction::EmitARMBuiltinExpr(unsigned BuiltinID,
     Function *F = CGM.getIntrinsic(BuiltinID == ARM::BI__builtin_arm_stlex
                                        ? Intrinsic::arm_stlexd
                                        : Intrinsic::arm_strexd);
-    llvm::Type *STy = llvm::StructType::get(Int32Ty, Int32Ty, nullptr);
+    llvm::Type *STy = llvm::StructType::get(Int32Ty, Int32Ty
+#if LLVM_VERSION_MAJOR < 5
+            , nullptr
+#endif
+            );
 
     Address Tmp = CreateMemTemp(E->getArg(0)->getType());
     Value *Val = EmitScalarExpr(E->getArg(0));
@@ -5304,7 +5323,11 @@ Value *CodeGenFunction::EmitAArch64BuiltinExpr(unsigned BuiltinID,
     Function *F = CGM.getIntrinsic(BuiltinID == AArch64::BI__builtin_arm_stlex
                                        ? Intrinsic::aarch64_stlxp
                                        : Intrinsic::aarch64_stxp);
-    llvm::Type *STy = llvm::StructType::get(Int64Ty, Int64Ty, nullptr);
+    llvm::Type *STy = llvm::StructType::get(Int64Ty, Int64Ty
+#if LLVM_VERSION_MAJOR < 5
+            , nullptr
+#endif
+            );
 
     Address Tmp = CreateMemTemp(E->getArg(0)->getType());
     EmitAnyExprToMem(E->getArg(0), Tmp, Qualifiers(), /*init*/ true);
@@ -7270,7 +7293,11 @@ Value *CodeGenFunction::EmitX86BuiltinExpr(unsigned BuiltinID,
     // unsigned int __cpu_subtype;
     // unsigned int __cpu_features[1];
     llvm::Type *STy = llvm::StructType::get(
-        Int32Ty, Int32Ty, Int32Ty, llvm::ArrayType::get(Int32Ty, 1), nullptr);
+        Int32Ty, Int32Ty, Int32Ty, llvm::ArrayType::get(Int32Ty, 1)
+#if LLVM_VERSION_MAJOR < 5
+        , nullptr
+#endif
+        );
 
     // Grab the global __cpu_model.
     llvm::Constant *CpuModel = CGM.CreateRuntimeVariable(STy, "__cpu_model");
@@ -7881,13 +7908,23 @@ Value *CodeGenFunction::EmitX86BuiltinExpr(unsigned BuiltinID,
 
   case X86::BI__faststorefence: {
     return Builder.CreateFence(llvm::AtomicOrdering::SequentiallyConsistent,
-                               llvm::CrossThread);
+#if LLVM_VERSION_MAJOR > 4
+                               llvm::SyncScope::System
+#else
+                               llvm::CrossThread
+#endif
+                               );
   }
   case X86::BI_ReadWriteBarrier:
   case X86::BI_ReadBarrier:
   case X86::BI_WriteBarrier: {
     return Builder.CreateFence(llvm::AtomicOrdering::SequentiallyConsistent,
-                               llvm::SingleThread);
+#if LLVM_VERSION_MAJOR > 4
+                               llvm::SyncScope::SingleThread
+#else
+                               llvm::SingleThread
+#endif
+                               );
   }
   case X86::BI_BitScanForward:
   case X86::BI_BitScanForward64:

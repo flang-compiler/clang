@@ -937,7 +937,11 @@ llvm::Type *CodeGenModule::getBlockDescriptorType() {
   // };
   BlockDescriptorType =
     llvm::StructType::create("struct.__block_descriptor",
-                             UnsignedLongTy, UnsignedLongTy, nullptr);
+                             UnsignedLongTy, UnsignedLongTy
+#if LLVM_VERSION_MAJOR < 5
+                             , nullptr
+#endif
+                             );
 
   // Now form a pointer to that.
   unsigned AddrSpace = 0;
@@ -963,7 +967,11 @@ llvm::Type *CodeGenModule::getGenericBlockLiteralType() {
   GenericBlockLiteralType =
     llvm::StructType::create("struct.__block_literal_generic",
                              VoidPtrTy, IntTy, IntTy, VoidPtrTy,
-                             BlockDescPtrTy, nullptr);
+                             BlockDescPtrTy
+#if LLVM_VERSION_MAJOR < 5
+                             , nullptr
+#endif
+                             );
 
   return GenericBlockLiteralType;
 }

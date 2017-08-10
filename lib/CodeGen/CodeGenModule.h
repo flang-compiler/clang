@@ -36,6 +36,12 @@
 #include "llvm/IR/ValueHandle.h"
 #include "llvm/Transforms/Utils/SanitizerStats.h"
 
+#if LLVM_VERSION_MAJOR > 4
+using MigAttributeList = llvm::AttributeList;
+#else
+using MigAttributeList = llvm::AttributeSet;
+#endif
+
 namespace llvm {
 class Module;
 class Constant;
@@ -906,14 +912,14 @@ public:
   /// Create a new runtime function with the specified type and name.
   llvm::Constant *
   CreateRuntimeFunction(llvm::FunctionType *Ty, StringRef Name,
-                        llvm::AttributeSet ExtraAttrs = llvm::AttributeSet(),
+                        MigAttributeList ExtraAttrs = MigAttributeList(),
                         bool Local = false);
 
   /// Create a new compiler builtin function with the specified type and name.
   llvm::Constant *CreateBuiltinFunction(llvm::FunctionType *Ty,
                                         StringRef Name,
-                                        llvm::AttributeSet ExtraAttrs =
-                                          llvm::AttributeSet());
+                                        MigAttributeList ExtraAttrs =
+                                          MigAttributeList());
   /// Create a new runtime global variable with the specified type and name.
   llvm::Constant *CreateRuntimeVariable(llvm::Type *Ty,
                                         StringRef Name);
@@ -1194,7 +1200,7 @@ private:
   GetOrCreateLLVMFunction(StringRef MangledName, llvm::Type *Ty, GlobalDecl D,
                           bool ForVTable, bool DontDefer = false,
                           bool IsThunk = false,
-                          llvm::AttributeSet ExtraAttrs = llvm::AttributeSet(),
+                          MigAttributeList ExtraAttrs = MigAttributeList(),
                           ForDefinition_t IsForDefinition = NotForDefinition);
 
   llvm::Constant *GetOrCreateLLVMGlobal(StringRef MangledName,

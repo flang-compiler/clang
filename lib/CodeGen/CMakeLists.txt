@@ -1,3 +1,6 @@
+execute_process(COMMAND ${LLVM_CONFIG} "--includedir"
+   OUTPUT_VARIABLE LLVM_INCLUDEDIR)
+
 set(LLVM_LINK_COMPONENTS
   Analysis
   BitReader
@@ -96,3 +99,7 @@ add_clang_library(clangCodeGen
   clangFrontend
   clangLex
   )
+
+target_include_directories(clangCodeGen PUBLIC
+  ${LLVM_CONFIG}
+)

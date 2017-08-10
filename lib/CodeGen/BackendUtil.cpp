@@ -35,7 +35,9 @@
 #include "llvm/LTO/LTOBackend.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/SubtargetFeature.h"
+#if LLVM_VERSION_MAJOR < 5
 #include "llvm/Object/ModuleSummaryIndexObjectFile.h"
+#endif
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -262,7 +264,12 @@ static TargetLibraryInfoImpl *createTLII(llvm::Triple &TargetTriple,
     TLII->disableAllFunctions();
   else {
     // Disable individual libc/libm calls in TargetLibraryInfo.
-    LibFunc::Func F;
+#if LLVM_VERSION_MAJOR > 4
+    LibFunc
+#else
+    LibFunc::Func
+#endif
+        F;
     for (auto &FuncName : CodeGenOpts.getNoBuiltinFuncs())
       if (TLII->getLibFunc(FuncName, F))
         TLII->setUnavailable(F);
@@ -317,12 +324,19 @@ void EmitAssemblyHelper::CreatePasses(legacy::PassManager &MPM,
     PMBuilder.Inliner = createAlwaysInlinerLegacyPass(InsertLifetimeIntrinsics);
   } else {
     PMBuilder.Inliner = createFunctionInliningPass(
-        CodeGenOpts.OptimizationLevel, CodeGenOpts.OptimizeSize);
+        CodeGenOpts.OptimizationLevel, CodeGenOpts.OptimizeSize
+#if LLVM_VERSION_MAJOR > 4
+        , (!CodeGenOpts.SampleProfileFile.empty() &&
+           CodeGenOpts.EmitSummaryIndex)
+#endif
+        );
   }
 
   PMBuilder.OptLevel = CodeGenOpts.OptimizationLevel;
   PMBuilder.SizeLevel = CodeGenOpts.OptimizeSize;
+#if LLVM_VERSION_MAJOR < 5
   PMBuilder.BBVectorize = CodeGenOpts.VectorizeBB;
+#endif
   PMBuilder.SLPVectorize = CodeGenOpts.VectorizeSLP;
   PMBuilder.LoopVectorize = CodeGenOpts.VectorizeLoop;
 
@@ -336,11 +350,15 @@ void EmitAssemblyHelper::CreatePasses(legacy::PassManager &MPM,
 
   // Add target-specific passes that need to run as early as possible.
   if (TM)
+#if LLVM_VERSION_MAJOR > 4
+    TM->adjustPassManager(PMBuilder);
+#else
     PMBuilder.addExtension(
         PassManagerBuilder::EP_EarlyAsPossible,
         [&](const PassManagerBuilder &, legacy::PassManagerBase &PM) {
           TM->addEarlyAsPossiblePasses(PM);
         });
+#endif
 
   PMBuilder.addExtension(PassManagerBuilder::EP_EarlyAsPossible,
                          addAddDiscriminatorsPass);
@@ -501,7 +519,13 @@ void EmitAssemblyHelper::CreateTargetMachine(bool MustCreateTM) {
       .Case("kernel", llvm::CodeModel::Kernel)
       .Case("medium", llvm::CodeModel::Medium)
       .Case("large", llvm::CodeModel::Large)
-      .Case("default", llvm::CodeModel::Default)
+      .Case("default",
+#if LLVM_VERSION_MAJOR > 5
+              ~1u
+#else
+              llvm::CodeModel::Default
+#endif
+              )
       .Default(~0u);
   assert(CodeModel != ~0u && "invalid code model!");
   llvm::CodeModel::Model CM = static_cast<llvm::CodeModel::Model>(CodeModel);
@@ -571,7 +595,12 @@ void EmitAssemblyHelper::CreateTargetMachine(bool MustCreateTM) {
 
   Options.UseInitArray = CodeGenOpts.UseInitArray;
   Options.DisableIntegratedAS = CodeGenOpts.DisableIntegratedAS;
-  Options.CompressDebugSections = CodeGenOpts.CompressDebugSections;
+  Options.CompressDebugSections =
+#if LLVM_VERSION_MAJOR > 4
+      CodeGenOpts.getCompressDebugSections();
+#else
+      CodeGenOpts.CompressDebugSections;
+#endif
   Options.RelaxELFRelocations = CodeGenOpts.RelaxELFRelocations;
 
   // Set EABI version.
@@ -584,7 +613,9 @@ void EmitAssemblyHelper::CreateTargetMachine(bool MustCreateTM) {
   if (LangOpts.SjLjExceptions)
     Options.ExceptionModel = llvm::ExceptionHandling::SjLj;
 
+#if LLVM_VERSION_MAJOR < 5
   Options.LessPreciseFPMADOption = CodeGenOpts.LessPreciseFPMAD;
+#endif
   Options.NoInfsFPMath = CodeGenOpts.NoInfsFPMath;
   Options.NoNaNsFPMath = CodeGenOpts.NoNaNsFPMath;
   Options.NoZerosInBSS = CodeGenOpts.NoZeroInitializedInBSS;
@@ -863,7 +894,11 @@ void EmitAssemblyHelper::EmitAssemblyWithNewPassManager(
 
 static void runThinLTOBackend(ModuleSummaryIndex *CombinedIndex, Module *M,
                               std::unique_ptr<raw_pwrite_stream> OS) {
+#if LLVM_VERSION_MAJOR > 4
+  StringMap<DenseMap<GlobalValue::GUID, GlobalValueSummary *>>
+#else
   StringMap<std::map<GlobalValue::GUID, GlobalValueSummary *>>
+#endif
       ModuleToDefinedGVSummaries;
   CombinedIndex->collectDefinedGVSummariesPerModule(ModuleToDefinedGVSummaries);
 
@@ -873,9 +908,20 @@ static void runThinLTOBackend(ModuleSummaryIndex *CombinedIndex, Module *M,
   FunctionImporter::ImportMapTy ImportList;
   for (auto &GlobalList : *CombinedIndex) {
     auto GUID = GlobalList.first;
-    assert(GlobalList.second.size() == 1 &&
+    assert(
+#if LLVM_VERSION_MAJOR > 4
+            GlobalList.second.SummaryList.size()
+#else
+            GlobalList.second.size()
+#endif
+            == 1 &&
            "Expected individual combined index to have one summary per GUID");
-    auto &Summary = GlobalList.second[0];
+    auto &Summary =
+#if LLVM_VERSION_MAJOR > 4
+        GlobalList.second.SummaryList[0];
+#else
+        GlobalList.second[0];
+#endif
     // Skip the summaries for the importing module. These are included to
     // e.g. record required linkage changes.
     if (Summary->modulePath() == M->getModuleIdentifier())
@@ -911,8 +957,13 @@ static void runThinLTOBackend(ModuleSummaryIndex *CombinedIndex, Module *M,
     // summary.
     bool FoundModule = false;
     for (BitcodeModule &BM : *BMsOrErr) {
+#if LLVM_VERSION_MAJOR > 4
+      Expected<BitcodeLTOInfo> LTOInfo = BM.getLTOInfo();
+      if (LTOInfo && LTOInfo->IsThinLTO) {
+#else
       Expected<bool> HasSummary = BM.hasSummary();
       if (HasSummary && *HasSummary) {
+#endif
         ModuleMap.insert({I.first(), BM});
         FoundModule = true;
         break;
