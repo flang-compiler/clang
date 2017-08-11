@@ -66,7 +66,8 @@ static bool needFortranLibs(const Driver &D, const ArgList &Args) {
 /// \brief Determine if Fortran "main" object is needed
 static bool needFortranMain(const Driver &D, const ArgList &Args) {
   return (needFortranLibs(D, Args)
-       && !Args.hasArg(options::OPT_no_fortran_main));
+       && (!Args.hasArg(options::OPT_Mnomain) ||
+           !Args.hasArg(options::OPT_no_fortran_main)));
 }
 
 static void handleTargetFeaturesGroup(const ArgList &Args,
@@ -304,7 +305,7 @@ static void AddLinkerInputs(const ToolChain &TC, const InputInfoList &Inputs,
   }
 
   // Claim "no Fortran main" arguments
-  for (auto Arg : Args.filtered(options::OPT_no_fortran_main)) {
+  for (auto Arg : Args.filtered(options::OPT_no_fortran_main, options::OPT_Mnomain)) {
     Arg->claim();
   }
 
@@ -4273,7 +4274,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   // Treat backslashes as regular characters
-  for (auto Arg : Args.filtered(options::OPT_fnobackslash)) {
+  for (auto Arg : Args.filtered(options::OPT_fnobackslash, options::OPT_Mbackslash)) {
     Arg->claim();
     CommonCmdArgs.push_back("-x");
     CommonCmdArgs.push_back("124");
@@ -4281,7 +4282,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   // Treat backslashes as C-style escape characters
-  for (auto Arg : Args.filtered(options::OPT_fbackslash)) {
+  for (auto Arg : Args.filtered(options::OPT_fbackslash, options::OPT_Mnobackslash)) {
     Arg->claim();
     CommonCmdArgs.push_back("-y");
     CommonCmdArgs.push_back("124");
@@ -4377,23 +4378,25 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   // -Minline has no effect
-  if (Arg *A = Args.getLastArg(options::OPT_Minline)) {
+  if (Arg *A = Args.getLastArg(options::OPT_Minline_on)) {
     getToolChain().getDriver().Diag(diag::warn_drv_clang_unsupported)
       << A->getAsString(Args);
   }
 
   // Handle -fdefault-real-8 (and its alias, -r8) and -fno-default-real-8
-  if (Arg *A = Args.getLastArg(options::OPT_default_real_8_f,
+  if (Arg *A = Args.getLastArg(options::OPT_r8,
+                               options::OPT_default_real_8_f,
                                options::OPT_default_real_8_fno)) {
     const char * fl;
     // For -f version add -x flag, for -fno add -y
-    if (A->getOption().matches(options::OPT_default_real_8_f)) {
-      fl = "-x";
-    } else {
+    if (A->getOption().matches(options::OPT_default_real_8_fno)) {
       fl = "-y";
+    } else {
+      fl = "-x";
     }
 
-    for (Arg *A : Args.filtered(options::OPT_default_real_8_f,
+    for (Arg *A : Args.filtered(options::OPT_r8,
+                                options::OPT_default_real_8_f,
                                 options::OPT_default_real_8_fno)) {
       A->claim();
     }
@@ -4407,14 +4410,15 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   // Process and claim -i8/-fdefault-integer-8/-fno-default-integer-8 argument
-  if (Arg *A = Args.getLastArg(options::OPT_default_integer_8_f,
+  if (Arg *A = Args.getLastArg(options::OPT_i8,
+                               options::OPT_default_integer_8_f,
                                options::OPT_default_integer_8_fno)) {
     const char * fl;
 
-    if (A->getOption().matches(options::OPT_default_integer_8_f)) {
-      fl = "-x";
-    } else {
+    if (A->getOption().matches(options::OPT_default_integer_8_fno)) {
       fl = "-y";
+    } else {
+      fl = "-x";
     }
 
     UpperCmdArgs.push_back(fl);
