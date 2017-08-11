@@ -740,7 +740,11 @@ void CodeGenModule::EmitCtorList(CtorList &Fns, const char *GlobalName) {
 
   // Get the type of a ctor entry, { i32, void ()*, i8* }.
   llvm::StructType *CtorStructTy = llvm::StructType::get(
-      Int32Ty, llvm::PointerType::getUnqual(CtorFTy), VoidPtrTy, nullptr);
+      Int32Ty, llvm::PointerType::getUnqual(CtorFTy), VoidPtrTy
+#if LLVM_VERSION_MAJOR < 5
+      , nullptr
+#endif
+      );
 
   // Construct the constructor and destructor arrays.
   ConstantInitBuilder builder(*this);
@@ -833,7 +837,7 @@ void CodeGenModule::SetLLVMFunctionAttributes(const Decl *D,
   AttributeListType AttributeList;
   ConstructAttributeList(F->getName(), Info, D, AttributeList, CallingConv,
                          false);
-  F->setAttributes(llvm::AttributeSet::get(getLLVMContext(), AttributeList));
+  F->setAttributes(MigAttributeList::get(getLLVMContext(), AttributeList));
   F->setCallingConv(static_cast<llvm::CallingConv::ID>(CallingConv));
 }
 
@@ -882,10 +886,15 @@ void CodeGenModule::SetLLVMFunctionAttributesForDefinition(const Decl *D,
         CodeGenOpts.getInlining() == CodeGenOptions::OnlyAlwaysInlining)
       B.addAttribute(llvm::Attribute::NoInline);
 
-    F->addAttributes(llvm::AttributeSet::FunctionIndex,
+    F->addAttributes(MigAttributeList::FunctionIndex,
+#if LLVM_VERSION_MAJOR > 4
+                     B
+#else
                      llvm::AttributeSet::get(
                          F->getContext(),
-                         llvm::AttributeSet::FunctionIndex, B));
+                         MigAttributeList::FunctionIndex, B)
+#endif
+                     );
     return;
   }
 
@@ -951,9 +960,14 @@ void CodeGenModule::SetLLVMFunctionAttributesForDefinition(const Decl *D,
       B.addAttribute(llvm::Attribute::MinSize);
   }
 
-  F->addAttributes(llvm::AttributeSet::FunctionIndex,
+  F->addAttributes(MigAttributeList::FunctionIndex,
+#if LLVM_VERSION_MAJOR > 4
+                   B
+#else
                    llvm::AttributeSet::get(
-                       F->getContext(), llvm::AttributeSet::FunctionIndex, B));
+                       F->getContext(), MigAttributeList::FunctionIndex, B)
+#endif
+                   );
 
   unsigned alignment = D->getMaxAlignment() / Context.getCharWidth();
   if (alignment)
@@ -1107,7 +1121,7 @@ void CodeGenModule::SetFunctionAttributes(GlobalDecl GD, llvm::Function *F,
   if (FD->isReplaceableGlobalAllocationFunction()) {
     // A replaceable global allocation function does not act like a builtin by
     // default, only if it is invoked by a new-expression or delete-expression.
-    F->addAttribute(llvm::AttributeSet::FunctionIndex,
+    F->addAttribute(MigAttributeList::FunctionIndex,
                     llvm::Attribute::NoBuiltin);
 
     // A sane operator new returns a non-aliasing pointer.
@@ -1116,7 +1130,7 @@ void CodeGenModule::SetFunctionAttributes(GlobalDecl GD, llvm::Function *F,
     auto Kind = FD->getDeclName().getCXXOverloadedOperator();
     if (getCodeGenOpts().AssumeSaneOperatorNew &&
         (Kind == OO_New || Kind == OO_Array_New))
-      F->addAttribute(llvm::AttributeSet::ReturnIndex,
+      F->addAttribute(MigAttributeList::ReturnIndex,
                       llvm::Attribute::NoAlias);
   }
 
@@ -1898,7 +1912,7 @@ CodeGenModule::GetOrCreateLLVMFunction(StringRef MangledName,
                                        llvm::Type *Ty,
                                        GlobalDecl GD, bool ForVTable,
                                        bool DontDefer, bool IsThunk,
-                                       llvm::AttributeSet ExtraAttrs,
+                                       MigAttributeList ExtraAttrs,
                                        ForDefinition_t IsForDefinition) {
   const Decl *D = GD.getDecl();
 
@@ -1989,12 +2003,17 @@ CodeGenModule::GetOrCreateLLVMFunction(StringRef MangledName,
   assert(F->getName() == MangledName && "name was uniqued!");
   if (D)
     SetFunctionAttributes(GD, F, IsIncompleteFunction, IsThunk);
-  if (ExtraAttrs.hasAttributes(llvm::AttributeSet::FunctionIndex)) {
-    llvm::AttrBuilder B(ExtraAttrs, llvm::AttributeSet::FunctionIndex);
-    F->addAttributes(llvm::AttributeSet::FunctionIndex,
+  if (ExtraAttrs.hasAttributes(MigAttributeList::FunctionIndex)) {
+    llvm::AttrBuilder B(ExtraAttrs, MigAttributeList::FunctionIndex);
+    F->addAttributes(MigAttributeList::FunctionIndex,
+#if LLVM_VERSION_MAJOR > 4
+                     B
+#else
                      llvm::AttributeSet::get(VMContext,
-                                             llvm::AttributeSet::FunctionIndex,
-                                             B));
+                                             MigAttributeList::FunctionIndex,
+                                             B)
+#endif
+                     );
   }
 
   if (!DontDefer) {
@@ -2069,7 +2088,7 @@ llvm::Constant *CodeGenModule::GetAddrOfFunction(GlobalDecl GD,
 
   StringRef MangledName = getMangledName(GD);
   return GetOrCreateLLVMFunction(MangledName, Ty, GD, ForVTable, DontDefer,
-                                 /*IsThunk=*/false, llvm::AttributeSet(),
+                                 /*IsThunk=*/false, MigAttributeList(),
                                  IsForDefinition);
 }
 
@@ -2115,7 +2134,7 @@ GetRuntimeFunctionDecl(ASTContext &C, StringRef Name) {
 /// type and name.
 llvm::Constant *
 CodeGenModule::CreateRuntimeFunction(llvm::FunctionType *FTy, StringRef Name,
-                                     llvm::AttributeSet ExtraAttrs,
+                                     MigAttributeList ExtraAttrs,
                                      bool Local) {
   llvm::Constant *C =
       GetOrCreateLLVMFunction(Name, FTy, GlobalDecl(), /*ForVTable=*/false,
@@ -2145,7 +2164,7 @@ CodeGenModule::CreateRuntimeFunction(llvm::FunctionType *FTy, StringRef Name,
 llvm::Constant *
 CodeGenModule::CreateBuiltinFunction(llvm::FunctionType *FTy,
                                      StringRef Name,
-                                     llvm::AttributeSet ExtraAttrs) {
+                                     MigAttributeList ExtraAttrs) {
   llvm::Constant *C =
       GetOrCreateLLVMFunction(Name, FTy, GlobalDecl(), /*ForVTable=*/false,
                               /*DontDefer=*/false, /*IsThunk=*/false, ExtraAttrs);
@@ -2898,13 +2917,15 @@ static void replaceUsesOfNonProtoConstant(llvm::Constant *old,
 
     // Get the call site's attribute list.
     SmallVector<llvm::AttributeSet, 8> newAttrs;
-    llvm::AttributeSet oldAttrs = callSite.getAttributes();
+    MigAttributeList oldAttrs = callSite.getAttributes();
 
+#if LLVM_VERSION_MAJOR < 5
     // Collect any return attributes from the call.
-    if (oldAttrs.hasAttributes(llvm::AttributeSet::ReturnIndex))
+    if (oldAttrs.hasAttributes(MigAttributeList::ReturnIndex))
       newAttrs.push_back(
         llvm::AttributeSet::get(newFn->getContext(),
                                 oldAttrs.getRetAttributes()));
+#endif
 
     // If the function was passed too few arguments, don't transform.
     unsigned newNumArgs = newFn->arg_size();
@@ -2931,7 +2952,7 @@ static void replaceUsesOfNonProtoConstant(llvm::Constant *old,
     if (dontTransform)
       continue;
 
-    if (oldAttrs.hasAttributes(llvm::AttributeSet::FunctionIndex))
+    if (oldAttrs.hasAttributes(MigAttributeList::FunctionIndex))
       newAttrs.push_back(llvm::AttributeSet::get(newFn->getContext(),
                                                  oldAttrs.getFnAttributes()));
 

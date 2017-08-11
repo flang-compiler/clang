@@ -61,8 +61,10 @@ llvm::Value *CodeGenFunction::EmitCastToVoidPtr(llvm::Value *value) {
 /// CreateTempAlloca - This creates a alloca and inserts it into the entry
 /// block.
 Address CodeGenFunction::CreateTempAlloca(llvm::Type *Ty, CharUnits Align,
-                                          const Twine &Name) {
-  auto Alloca = CreateTempAlloca(Ty, Name);
+                                          const Twine &Name,
+                                          llvm::Value *ArraySize,
+                                          bool CastToDefaultAddrSpace) {
+  auto Alloca = CreateTempAlloca(Ty, Name, ArraySize);
   Alloca->setAlignment(Align.getQuantity());
   return Address(Alloca, Align);
 }
@@ -70,8 +72,15 @@ Address CodeGenFunction::CreateTempAlloca(llvm::Type *Ty, CharUnits Align,
 /// CreateTempAlloca - This creates a alloca and inserts it into the entry
 /// block.
 llvm::AllocaInst *CodeGenFunction::CreateTempAlloca(llvm::Type *Ty,
-                                                    const Twine &Name) {
-  return new llvm::AllocaInst(Ty, nullptr, Name, AllocaInsertPt);
+                                                    const Twine &Name,
+                                                    llvm::Value *ArraySize) {
+  if (ArraySize)
+    return Builder.CreateAlloca(Ty, ArraySize, Name);
+  return new llvm::AllocaInst(Ty, CGM.getDataLayout().getAllocaAddrSpace(),
+#if LLVM_VERSION_MAJOR > 4
+                              ArraySize,
+#endif
+                              Name, AllocaInsertPt);
 }
 
 /// CreateDefaultAlignTempAlloca - This creates an alloca with the
@@ -2545,8 +2554,8 @@ static void emitCheckHandlerCall(CodeGenFunction &CGF,
 
   llvm::Value *Fn = CGF.CGM.CreateRuntimeFunction(
       FnType, FnName,
-      llvm::AttributeSet::get(CGF.getLLVMContext(),
-                              llvm::AttributeSet::FunctionIndex, B),
+      MigAttributeList::get(CGF.getLLVMContext(),
+                            MigAttributeList::FunctionIndex, B),
       /*Local=*/true);
   llvm::CallInst *HandlerCall = CGF.EmitNounwindRuntimeCall(Fn, FnArgs);
   if (!MayReturn) {
@@ -2750,9 +2759,17 @@ void CodeGenFunction::EmitCfiCheckFail() {
   EmitTrapCheck(DataIsNotNullPtr);
 
   llvm::StructType *SourceLocationTy =
-      llvm::StructType::get(VoidPtrTy, Int32Ty, Int32Ty, nullptr);
+      llvm::StructType::get(VoidPtrTy, Int32Ty, Int32Ty
+#if LLVM_VERSION_MAJOR < 5
+              , nullptr
+#endif
+              );
   llvm::StructType *CfiCheckFailDataTy =
-      llvm::StructType::get(Int8Ty, SourceLocationTy, VoidPtrTy, nullptr);
+      llvm::StructType::get(Int8Ty, SourceLocationTy, VoidPtrTy
+#if LLVM_VERSION_MAJOR < 5
+              , nullptr
+#endif
+              );
 
   llvm::Value *V = Builder.CreateConstGEP2_32(
       CfiCheckFailDataTy,
@@ -2821,7 +2838,7 @@ llvm::CallInst *CodeGenFunction::EmitTrapCall(llvm::Intrinsic::ID IntrID) {
   if (!CGM.getCodeGenOpts().TrapFuncName.empty()) {
     auto A = llvm::Attribute::get(getLLVMContext(), "trap-func-name",
                                   CGM.getCodeGenOpts().TrapFuncName);
-    TrapCall->addAttribute(llvm::AttributeSet::FunctionIndex, A);
+    TrapCall->addAttribute(MigAttributeList::FunctionIndex, A);
   }
 
   return TrapCall;

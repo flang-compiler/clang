@@ -195,7 +195,13 @@ namespace clang {
           Ctx.getDiagnosticHandler();
       void *OldDiagnosticContext = Ctx.getDiagnosticContext();
       Ctx.setDiagnosticHandler(DiagnosticHandler, this);
-      Ctx.setDiagnosticHotnessRequested(CodeGenOpts.DiagnosticsWithHotness);
+      Ctx.
+#if LLVM_VERSION_MAJOR > 4
+          setDiagnosticsHotnessRequested
+#else
+          setDiagnosticHotnessRequested
+#endif
+          (CodeGenOpts.DiagnosticsWithHotness);
 
       std::unique_ptr<llvm::tool_output_file> OptRecordFile;
       if (!CodeGenOpts.OptRecordFile.empty()) {
@@ -213,7 +219,13 @@ namespace clang {
             llvm::make_unique<yaml::Output>(OptRecordFile->os()));
 
         if (CodeGenOpts.getProfileUse() != CodeGenOptions::ProfileNone)
-          Ctx.setDiagnosticHotnessRequested(true);
+          Ctx.
+#if LLVM_VERSION_MAJOR > 4
+              setDiagnosticsHotnessRequested
+#else
+              setDiagnosticHotnessRequested
+#endif
+              (true);
       }
 
       // Link LinkModule into this module if present, preserving its validity.
@@ -275,7 +287,12 @@ namespace clang {
     /// Get the best possible source location to represent a diagnostic that
     /// may have associated debug info.
     const FullSourceLoc
-    getBestLocationFromDebugLoc(const llvm::DiagnosticInfoWithDebugLocBase &D,
+    getBestLocationFromDebugLoc(
+#if LLVM_VERSION_MAJOR > 4
+                                const llvm::DiagnosticInfoWithLocationBase &D,
+#else
+                                const llvm::DiagnosticInfoWithDebugLocBase &D,
+#endif
                                 bool &BadDebugInfo, StringRef &Filename,
                                 unsigned &Line, unsigned &Column) const;
 
@@ -477,7 +494,12 @@ BackendConsumer::StackSizeDiagHandler(const llvm::DiagnosticInfoStackSize &D) {
 }
 
 const FullSourceLoc BackendConsumer::getBestLocationFromDebugLoc(
-    const llvm::DiagnosticInfoWithDebugLocBase &D, bool &BadDebugInfo, StringRef &Filename,
+#if LLVM_VERSION_MAJOR > 4
+    const llvm::DiagnosticInfoWithLocationBase &D,
+#else
+    const llvm::DiagnosticInfoWithDebugLocBase &D,
+#endif
+    bool &BadDebugInfo, StringRef &Filename,
                                 unsigned &Line, unsigned &Column) const {
   SourceManager &SourceMgr = Context->getSourceManager();
   FileManager &FileMgr = SourceMgr.getFileManager();

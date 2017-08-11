@@ -2279,14 +2279,12 @@ void CodeGenFunction::EmitFunctionProlog(const CGFunctionInfo &FI,
                 llvm::AttrBuilder Attrs;
                 Attrs.addDereferenceableAttr(
                   getContext().getTypeSizeInChars(ETy).getQuantity()*ArrSize);
-                AI->addAttr(
 #if LLVM_VERSION_MAJOR > 4
-                        Attrs
+                AI->addAttrs(Attrs);
 #else
-                        llvm::AttributeSet::get(getLLVMContext(),
-                                                    AI->getArgNo() + 1, Attrs)
+                AI->addAttr(llvm::AttributeSet::get(getLLVMContext(),
+                                                    AI->getArgNo() + 1, Attrs));
 #endif
-                        );
               } else if (getContext().getTargetAddressSpace(ETy) == 0) {
                 AI->addAttr(
 #if LLVM_VERSION_MAJOR > 4
@@ -2332,14 +2330,12 @@ void CodeGenFunction::EmitFunctionProlog(const CGFunctionInfo &FI,
 
             llvm::AttrBuilder Attrs;
             Attrs.addAlignmentAttr(Alignment);
-            AI->addAttr(
 #if LLVM_VERSION_MAJOR > 4
-                    Attrs
+            AI->addAttrs(Attrs);
 #else
-                    llvm::AttributeSet::get(getLLVMContext(),
-                                                AI->getArgNo() + 1, Attrs)
+            AI->addAttr(llvm::AttributeSet::get(getLLVMContext(),
+                                                AI->getArgNo() + 1, Attrs));
 #endif
-                    );
           }
         }
 
@@ -3617,12 +3613,17 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
   Address ArgMemory = Address::invalid();
   const llvm::StructLayout *ArgMemoryLayout = nullptr;
   if (llvm::StructType *ArgStruct = CallInfo.getArgStruct()) {
-    ArgMemoryLayout = CGM.getDataLayout().getStructLayout(ArgStruct);
+    const llvm::DataLayout &DL = CGM.getDataLayout();
+    ArgMemoryLayout = DL.getStructLayout(ArgStruct);
     llvm::Instruction *IP = CallArgs.getStackBase();
     llvm::AllocaInst *AI;
     if (IP) {
       IP = IP->getNextNode();
-      AI = new llvm::AllocaInst(ArgStruct, "argmem", IP);
+      AI = new llvm::AllocaInst(ArgStruct,
+#if LLVM_VERSION_MAJOR > 4
+                                DL.getAllocaAddrSpace(),
+#endif
+                                "argmem", IP);
     } else {
       AI = CreateTempAlloca(ArgStruct, "argmem");
     }
@@ -4023,8 +4024,8 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
                              Callee.getAbstractInfo(),
                              AttributeList, CallingConv,
                              /*AttrOnCallSite=*/true);
-  llvm::AttributeSet Attrs = llvm::AttributeSet::get(getLLVMContext(),
-                                                     AttributeList);
+  MigAttributeList Attrs = MigAttributeList::get(getLLVMContext(),
+                                                 AttributeList);
 
   // Apply some call-site-specific attributes.
   // TODO: work this into building the attribute set.
@@ -4036,14 +4037,14 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
         Callee.getAbstractInfo().getCalleeDecl()->hasAttr<NoInlineAttr>())) {
     Attrs =
         Attrs.addAttribute(getLLVMContext(),
-                           llvm::AttributeSet::FunctionIndex,
+                           MigAttributeList::FunctionIndex,
                            llvm::Attribute::AlwaysInline);
   }
 
   // Disable inlining inside SEH __try blocks.
   if (isSEHTryScope()) {
     Attrs =
-        Attrs.addAttribute(getLLVMContext(), llvm::AttributeSet::FunctionIndex,
+        Attrs.addAttribute(getLLVMContext(), MigAttributeList::FunctionIndex,
                            llvm::Attribute::NoInline);
   }
 
@@ -4060,7 +4061,7 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
     CannotThrow = true;
   } else {
     // Otherwise, nounwind call sites will never throw.
-    CannotThrow = Attrs.hasAttribute(llvm::AttributeSet::FunctionIndex,
+    CannotThrow = Attrs.hasAttribute(MigAttributeList::FunctionIndex,
                                      llvm::Attribute::NoUnwind);
   }
   llvm::BasicBlock *InvokeDest = CannotThrow ? nullptr : getInvokeDest();
