@@ -2980,7 +2980,15 @@ static void replaceUsesOfNonProtoConstant(llvm::Constant *old,
     if (!newCall->getType()->isVoidTy())
       newCall->takeName(callSite.getInstruction());
     newCall.setAttributes(
-                     llvm::AttributeSet::get(newFn->getContext(), newAttrs));
+#if LLVM_VERSION_MAJOR > 4
+                          llvm::AttributeList::get(newFn->getContext(),
+                                                   oldAttrs.getFnAttributes(),
+                                                   oldAttrs.getRetAttributes(),
+                                                   newAttrs)
+#else
+                     llvm::AttributeSet::get(newFn->getContext(), newAttrs)
+#endif
+                     );
     newCall.setCallingConv(callSite.getCallingConv());
 
     // Finally, remove the old call, replacing any uses with the new one.

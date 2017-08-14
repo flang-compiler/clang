@@ -1866,7 +1866,9 @@ bool X86_32TargetCodeGenInfo::isStructReturnInRegABI(
   case llvm::Triple::DragonFly:
   case llvm::Triple::FreeBSD:
   case llvm::Triple::OpenBSD:
+#if LLVM_VERSION_MAJOR < 6
   case llvm::Triple::Bitrig:
+#endif
   case llvm::Triple::Win32:
     return true;
   default:
@@ -1885,10 +1887,15 @@ void X86_32TargetCodeGenInfo::setTargetAttributes(const Decl *D,
       // Now add the 'alignstack' attribute with a value of 16.
       llvm::AttrBuilder B;
       B.addStackAlignmentAttr(16);
-      Fn->addAttributes(llvm::AttributeSet::FunctionIndex,
+      Fn->addAttributes(MigAttributeList::FunctionIndex,
+#if LLVM_VERSION_MAJOR > 4
+                        B
+#else
                       llvm::AttributeSet::get(CGM.getLLVMContext(),
                                               llvm::AttributeSet::FunctionIndex,
-                                              B));
+                                              B)
+#endif
+                      );
     }
     if (FD->hasAttr<AnyX86InterruptAttr>()) {
       llvm::Function *Fn = cast<llvm::Function>(GV);
@@ -3146,7 +3153,11 @@ GetX86_64ByValArgumentPair(llvm::Type *Lo, llvm::Type *Hi,
     }
   }
 
-  llvm::StructType *Result = llvm::StructType::get(Lo, Hi, nullptr);
+  llvm::StructType *Result = llvm::StructType::get(Lo, Hi
+#if LLVM_VERSION_MAJOR < 5
+          , nullptr
+#endif
+          );
 
 
   // Verify that the second element is at an 8-byte offset.
@@ -3222,8 +3233,11 @@ classifyReturnType(QualType RetTy) const {
   case ComplexX87:
     assert(Hi == ComplexX87 && "Unexpected ComplexX87 classification.");
     ResType = llvm::StructType::get(llvm::Type::getX86_FP80Ty(getVMContext()),
-                                    llvm::Type::getX86_FP80Ty(getVMContext()),
-                                    nullptr);
+                                    llvm::Type::getX86_FP80Ty(getVMContext())
+#if LLVM_VERSION_MAJOR < 5
+                                    , nullptr
+#endif
+                                    );
     break;
   }
 
@@ -3719,7 +3733,11 @@ Address X86_64ABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
       CGF.Builder.CreateConstInBoundsByteGEP(RegAddrLo,
                                              CharUnits::fromQuantity(16));
     llvm::Type *DoubleTy = CGF.DoubleTy;
-    llvm::StructType *ST = llvm::StructType::get(DoubleTy, DoubleTy, nullptr);
+    llvm::StructType *ST = llvm::StructType::get(DoubleTy, DoubleTy
+#if LLVM_VERSION_MAJOR < 5
+            , nullptr
+#endif
+            );
     llvm::Value *V;
     Address Tmp = CGF.CreateMemTemp(Ty);
     Tmp = CGF.Builder.CreateElementBitCast(Tmp, ST);
@@ -4624,7 +4642,11 @@ PPC64_SVR4_ABIInfo::classifyReturnType(QualType RetTy) const {
       llvm::Type *CoerceTy;
       if (Bits > GPRBits) {
         CoerceTy = llvm::IntegerType::get(getVMContext(), GPRBits);
-        CoerceTy = llvm::StructType::get(CoerceTy, CoerceTy, nullptr);
+        CoerceTy = llvm::StructType::get(CoerceTy, CoerceTy
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                );
       } else
         CoerceTy =
             llvm::IntegerType::get(getVMContext(), llvm::alignTo(Bits, 8));
@@ -5433,10 +5455,15 @@ public:
     // the backend to perform a realignment as part of the function prologue.
     llvm::AttrBuilder B;
     B.addStackAlignmentAttr(8);
-    Fn->addAttributes(llvm::AttributeSet::FunctionIndex,
+    Fn->addAttributes(MigAttributeList::FunctionIndex,
+#if LLVM_VERSION_MAJOR > 4
+                      B
+#else
                       llvm::AttributeSet::get(CGM.getLLVMContext(),
                                               llvm::AttributeSet::FunctionIndex,
-                                              B));
+                                              B)
+#endif
+                      );
   }
 };
 

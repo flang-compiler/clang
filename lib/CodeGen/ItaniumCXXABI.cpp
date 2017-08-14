@@ -499,7 +499,11 @@ llvm::Type *
 ItaniumCXXABI::ConvertMemberPointerType(const MemberPointerType *MPT) {
   if (MPT->isMemberDataPointer())
     return CGM.PtrDiffTy;
-  return llvm::StructType::get(CGM.PtrDiffTy, CGM.PtrDiffTy, nullptr);
+  return llvm::StructType::get(CGM.PtrDiffTy, CGM.PtrDiffTy
+#if LLVM_VERSION_MAJOR < 5
+          , nullptr
+#endif
+          );
 }
 
 /// In the Itanium and ARM ABIs, method pointers have the form:
@@ -1134,8 +1138,8 @@ static llvm::Constant *getItaniumDynamicCastFn(CodeGenFunction &CGF) {
   // Mark the function as nounwind readonly.
   llvm::Attribute::AttrKind FuncAttrs[] = { llvm::Attribute::NoUnwind,
                                             llvm::Attribute::ReadOnly };
-  llvm::AttributeSet Attrs = llvm::AttributeSet::get(
-      CGF.getLLVMContext(), llvm::AttributeSet::FunctionIndex, FuncAttrs);
+  MigAttributeList Attrs = MigAttributeList::get(
+      CGF.getLLVMContext(), MigAttributeList::FunctionIndex, FuncAttrs);
 
   return CGF.CGM.CreateRuntimeFunction(FTy, "__dynamic_cast", Attrs);
 }
@@ -1908,8 +1912,8 @@ static llvm::Constant *getGuardAcquireFn(CodeGenModule &CGM,
     llvm::FunctionType::get(CGM.getTypes().ConvertType(CGM.getContext().IntTy),
                             GuardPtrTy, /*isVarArg=*/false);
   return CGM.CreateRuntimeFunction(FTy, "__cxa_guard_acquire",
-                                   llvm::AttributeSet::get(CGM.getLLVMContext(),
-                                              llvm::AttributeSet::FunctionIndex,
+                                   MigAttributeList::get(CGM.getLLVMContext(),
+                                              MigAttributeList::FunctionIndex,
                                                  llvm::Attribute::NoUnwind));
 }
 
@@ -1919,8 +1923,8 @@ static llvm::Constant *getGuardReleaseFn(CodeGenModule &CGM,
   llvm::FunctionType *FTy =
     llvm::FunctionType::get(CGM.VoidTy, GuardPtrTy, /*isVarArg=*/false);
   return CGM.CreateRuntimeFunction(FTy, "__cxa_guard_release",
-                                   llvm::AttributeSet::get(CGM.getLLVMContext(),
-                                              llvm::AttributeSet::FunctionIndex,
+                                   MigAttributeList::get(CGM.getLLVMContext(),
+                                              MigAttributeList::FunctionIndex,
                                                  llvm::Attribute::NoUnwind));
 }
 
@@ -1930,8 +1934,8 @@ static llvm::Constant *getGuardAbortFn(CodeGenModule &CGM,
   llvm::FunctionType *FTy =
     llvm::FunctionType::get(CGM.VoidTy, GuardPtrTy, /*isVarArg=*/false);
   return CGM.CreateRuntimeFunction(FTy, "__cxa_guard_abort",
-                                   llvm::AttributeSet::get(CGM.getLLVMContext(),
-                                              llvm::AttributeSet::FunctionIndex,
+                                   MigAttributeList::get(CGM.getLLVMContext(),
+                                              MigAttributeList::FunctionIndex,
                                                  llvm::Attribute::NoUnwind));
 }
 
@@ -3921,7 +3925,7 @@ static llvm::Constant *getClangCallTerminateFn(CodeGenModule &CGM) {
     llvm::FunctionType::get(CGM.VoidTy, CGM.Int8PtrTy, /*IsVarArgs=*/false);
   llvm::Constant *fnRef =
       CGM.CreateRuntimeFunction(fnTy, "__clang_call_terminate",
-                                llvm::AttributeSet(), /*Local=*/true);
+                                MigAttributeList(), /*Local=*/true);
 
   llvm::Function *fn = dyn_cast<llvm::Function>(fnRef);
   if (fn && fn->empty()) {

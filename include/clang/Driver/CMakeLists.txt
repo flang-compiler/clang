@@ -1,3 +1,7 @@
-set(LLVM_TARGET_DEFINITIONS Options.td)
+if(LLVM_VERSION_MAJOR VERSION_GREATER 4)
+    set(LLVM_TARGET_DEFINITIONS Options.td)
+else()
+    set(LLVM_TARGET_DEFINITIONS Options-4.0.td)
+endif()
 tablegen(LLVM Options.inc -gen-opt-parser-defs)
 add_public_tablegen_target(ClangDriverOptions)
