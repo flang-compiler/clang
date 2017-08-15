@@ -30,31 +30,10 @@
 #include "llvm/ADT/Triple.h"
 #include "llvm/MC/MCSectionMachO.h"
 #include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/TargetParser.h"
 #include <algorithm>
 #include <memory>
 
 using namespace clang;
-
-#if LLVM_VERSION_MAJOR > 5
-using MigARMArchKindTy = llvm::ARM::ArchKind;
-using MigAArch64ArchKindTy = llvm::AArch64::ArchKind;
-using MigARMISAKindTy = llvm::ARM::ISAKind;
-using MigARMProfileKindTy = llvm::ARM::ProfileKind;
-const MigARMArchKindTy MigARMArchKindINVALID = llvm::ARM::ArchKind::INVALID;
-const MigARMArchKindTy MigARMArchKindARMV8_1A = llvm::ARM::ArchKind::ARMV8_1A;
-const MigARMISAKindTy MigARMISAKindEnumTHUMB = llvm::ARM::ISAKind::THUMB;
-const MigARMProfileKindTy MigARMProfileKindEnumM = llvm::ARM::ProfileKind::M;
-#else
-using MigARMArchKindTy = unsigned;
-using MigAArch64ArchKindTy = unsigned;
-using MigARMISAKindTy = unsigned;
-using MigARMProfileKindTy = unsigned;
-const MigARMArchKindTy MigARMArchKindINVALID = llvm::ARM::AK_INVALID;
-const MigARMArchKindTy MigARMArchKindARMV8_1A = llvm::ARM::AK_ARMV8_1A;
-const MigARMISAKindTy MigARMISAKindEnumTHUMB = llvm::ARM::IK_THUMB;
-const MigARMProfileKindTy MigARMProfileKindEnumM = llvm::ARM::PK_M;
-#endif
 
 //===----------------------------------------------------------------------===//
 //  Common code shared among targets.
@@ -5019,13 +4998,7 @@ class ARMTargetInfo : public TargetInfo {
     ArchISA     = llvm::ARM::parseArchISA(ArchName);
     CPU         = llvm::ARM::getDefaultCPU(ArchName);
     MigARMArchKindTy AK = llvm::ARM::parseArch(ArchName);
-    if (AK !=
-#if LLVM_VERSION_MAJOR > 5
-            llvm::ARM::ArchKind::INVALID
-#else
-            llvm::ARM::AK_INVALID
-#endif
-            )
+    if (AK != MigARMArchKindINVALID)
       ArchKind = AK;
     setArchInfo(ArchKind);
   }
@@ -5088,11 +5061,7 @@ class ARMTargetInfo : public TargetInfo {
     switch(ArchKind) {
     default:
       return llvm::ARM::getCPUAttr(ArchKind);
-#if LLVM_VERSION_MAJOR > 5
-    case llvm::ARM::ArchKind::ARMV6M:
-#else
-    case llvm::ARM::AK_ARMV6M:
-#endif
+    case MigARMArchKindARMV6M:
       return "6M";
 #if LLVM_VERSION_MAJOR > 5
     case llvm::ARM::ArchKind::ARMV7S:
@@ -5112,11 +5081,7 @@ class ARMTargetInfo : public TargetInfo {
     case llvm::ARM::AK_ARMV7R:
 #endif
       return "7R";
-#if LLVM_VERSION_MAJOR > 5
-    case llvm::ARM::ArchKind::ARMV7M:
-#else
-    case llvm::ARM::AK_ARMV7M:
-#endif
+    case MigARMArchKindARMV7M:
       return "7M";
 #if LLVM_VERSION_MAJOR > 5
     case llvm::ARM::ArchKind::ARMV7EM:

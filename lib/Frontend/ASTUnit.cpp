@@ -1245,7 +1245,11 @@ ASTUnit::PreambleFileHash::createForFile(off_t Size, time_t ModTime) {
   PreambleFileHash Result;
   Result.Size = Size;
   Result.ModTime = ModTime;
+#if LLVM_VERSION_MAJOR > 4
+  Result.MD5 = {};
+#else
   memset(Result.MD5, 0, sizeof(Result.MD5));
+#endif
   return Result;
 }
 
@@ -1265,8 +1269,11 @@ ASTUnit::PreambleFileHash ASTUnit::PreambleFileHash::createForMemoryBuffer(
 namespace clang {
 bool operator==(const ASTUnit::PreambleFileHash &LHS,
                 const ASTUnit::PreambleFileHash &RHS) {
-  return LHS.Size == RHS.Size && LHS.ModTime == RHS.ModTime &&
-         memcmp(LHS.MD5, RHS.MD5, sizeof(LHS.MD5)) == 0;
+  return LHS.Size == RHS.Size && LHS.ModTime == RHS.ModTime
+#if LLVM_VERSION_MAJOR < 5
+      && memcmp(LHS.MD5, RHS.MD5, sizeof(LHS.MD5)) == 0
+#endif
+      ;
 }
 } // namespace clang
 

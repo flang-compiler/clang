@@ -71,6 +71,9 @@
 #include "llvm/Bitcode/BitCodes.h"
 #include "llvm/Bitcode/BitstreamWriter.h"
 #include "llvm/Support/Casting.h"
+#if LLVM_VERSION_MAJOR > 4
+#include "llvm/Support/Error.h"
+#endif
 #include "llvm/Support/Compression.h"
 #include "llvm/Support/EndianStream.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -2098,8 +2101,13 @@ void ASTWriter::WriteSourceManagerBlock(SourceManager &SourceMgr,
         // Compress the buffer if possible. We expect that almost all PCM
         // consumers will not want its contents.
         SmallString<0> CompressedBuffer;
+#if LLVM_VERSION_MAJOR > 4
+        llvm::Error E = llvm::zlib::compress(Blob.drop_back(1), CompressedBuffer);
+        if (!E) {
+#else
         if (llvm::zlib::compress(Blob.drop_back(1), CompressedBuffer) ==
             llvm::zlib::StatusOK) {
+#endif
           RecordData::value_type Record[] = {SM_SLOC_BUFFER_BLOB_COMPRESSED,
                                              Blob.size() - 1};
           Stream.EmitRecordWithBlob(SLocBufferBlobCompressedAbbrv, Record,

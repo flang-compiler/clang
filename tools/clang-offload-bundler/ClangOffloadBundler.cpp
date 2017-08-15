@@ -912,8 +912,12 @@ static bool UnbundleFiles() {
   return false;
 }
 
+#if LLVM_VERSION_MAJOR > 5
+static void PrintVersion(raw_ostream &OS) {
+#else
 static void PrintVersion() {
   raw_ostream &OS = outs();
+#endif
   OS << clang::getClangToolFullVersion("clang-offload-bundler") << '\n';
 }
 

@@ -29,6 +29,7 @@
 #include "llvm/ADT/Triple.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/Support/DataTypes.h"
+#include "llvm/Support/TargetParser.h"
 #include <cassert>
 #include <string>
 #include <vector>
@@ -47,6 +48,32 @@ class SourceLocation;
 class SourceManager;
 
 namespace Builtin { struct Info; }
+
+#if LLVM_VERSION_MAJOR > 5
+using MigARMArchKindTy = llvm::ARM::ArchKind;
+using MigAArch64ArchKindTy = llvm::AArch64::ArchKind;
+using MigARMISAKindTy = llvm::ARM::ISAKind;
+using MigARMProfileKindTy = llvm::ARM::ProfileKind;
+const MigARMArchKindTy MigARMArchKindINVALID = llvm::ARM::ArchKind::INVALID;
+const MigARMArchKindTy MigARMArchKindARMV8_1A = llvm::ARM::ArchKind::ARMV8_1A;
+const MigARMISAKindTy MigARMISAKindEnumTHUMB = llvm::ARM::ISAKind::THUMB;
+const MigARMProfileKindTy MigARMProfileKindEnumM = llvm::ARM::ProfileKind::M;
+const MigARMArchKindTy MigARMArchKindARMV6M = llvm::ARM::ArchKind::ARMV6M;
+const MigARMArchKindTy MigARMArchKindARMV7M = llvm::ARM::ArchKind::ARMV7M;
+const MigARMArchKindTy MigARMArchKindARMV7EM = llvm::ARM::ArchKind::ARMV7EM;
+#else
+using MigARMArchKindTy = unsigned;
+using MigAArch64ArchKindTy = unsigned;
+using MigARMISAKindTy = unsigned;
+using MigARMProfileKindTy = unsigned;
+const MigARMArchKindTy MigARMArchKindINVALID = llvm::ARM::AK_INVALID;
+const MigARMArchKindTy MigARMArchKindARMV8_1A = llvm::ARM::AK_ARMV8_1A;
+const MigARMISAKindTy MigARMISAKindEnumTHUMB = llvm::ARM::IK_THUMB;
+const MigARMProfileKindTy MigARMProfileKindEnumM = llvm::ARM::PK_M;
+const MigARMArchKindTy MigARMArchKindARMV6M = llvm::ARM::AK_ARMV6M;
+const MigARMArchKindTy MigARMArchKindARMV7M = llvm::ARM::AK_ARMV7M;
+const MigARMArchKindTy MigARMArchKindARMV7EM = llvm::ARM::AK_ARMV7EM;
+#endif
 
 /// \brief Exposes information about the current target.
 ///

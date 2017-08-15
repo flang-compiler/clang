@@ -715,14 +715,34 @@ static bool ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args, InputKind IK,
       getLastArgIntValue(Args, OPT_fxray_instruction_threshold_, 200, Diags);
   Opts.InstrumentForProfiling = Args.hasArg(OPT_pg);
   Opts.EmitOpenCLArgMetadata = Args.hasArg(OPT_cl_kernel_arg_info);
+#if LLVM_VERSION_MAJOR > 4
+  if (const Arg *A = Args.getLastArg(OPT_compress_debug_sections,
+                                     OPT_compress_debug_sections_EQ)) {
+    if (A->getOption().getID() == OPT_compress_debug_sections) {
+      // TODO: be more clever about the compression type auto-detection
+      Opts.setCompressDebugSections(llvm::DebugCompressionType::GNU);
+    } else {
+      auto DCT = llvm::StringSwitch<llvm::DebugCompressionType>(A->getValue())
+                     .Case("none", llvm::DebugCompressionType::None)
+                     .Case("zlib", llvm::DebugCompressionType::Z)
+                     .Case("zlib-gnu", llvm::DebugCompressionType::GNU)
+                     .Default(llvm::DebugCompressionType::None);
+      Opts.setCompressDebugSections(DCT);
+    }
+  }
+#else
   Opts.CompressDebugSections = Args.hasArg(OPT_compress_debug_sections);
+#endif
   Opts.RelaxELFRelocations = Args.hasArg(OPT_mrelax_relocations);
   Opts.DebugCompilationDir = Args.getLastArgValue(OPT_fdebug_compilation_dir);
   for (auto A : Args.filtered(OPT_mlink_bitcode_file, OPT_mlink_cuda_bitcode)) {
     unsigned LinkFlags = llvm::Linker::Flags::None;
     if (A->getOption().matches(OPT_mlink_cuda_bitcode))
-      LinkFlags = llvm::Linker::Flags::LinkOnlyNeeded |
-                  llvm::Linker::Flags::InternalizeLinkedSymbols;
+      LinkFlags = llvm::Linker::Flags::LinkOnlyNeeded
+#if LLVM_VERSION_MAJOR < 5
+          | llvm::Linker::Flags::InternalizeLinkedSymbols
+#endif
+          ;
     Opts.LinkBitcodeFiles.push_back(std::make_pair(LinkFlags, A->getValue()));
   }
   Opts.SanitizeCoverageType =

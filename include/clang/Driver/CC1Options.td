@@ -307,6 +307,8 @@ def fprofile_instrument_use_path_EQ :
 def flto_visibility_public_std:
     Flag<["-"], "flto-visibility-public-std">,
     HelpText<"Use public LTO visibility for classes in std and stdext namespaces">;
+def compress_debug_sections_EQ : Joined<["-"], "compress-debug-sections=">,
+    HelpText<"DWARF debug sections compression type">;
 
 //===----------------------------------------------------------------------===//
 // Dependency Output Options

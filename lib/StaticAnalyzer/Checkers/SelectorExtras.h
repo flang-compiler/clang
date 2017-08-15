@@ -34,6 +34,17 @@ static inline Selector getKeywordSelector(ASTContext &Ctx, va_list argp) {
   return getKeywordSelectorImpl(Ctx, First, argp);
 }
 
+#if LLVM_VERSION_MAJOR > 4
+template <typename... IdentifierInfos>
+static inline Selector getKeywordSelector(ASTContext &Ctx,
+                                          IdentifierInfos *... IIs) {
+  static_assert(sizeof...(IdentifierInfos),
+                "keyword selectors must have at least one argument");
+  SmallVector<IdentifierInfo *, 10> II({&Ctx.Idents.get(IIs)...});
+
+  return Ctx.Selectors.getSelector(II.size(), &II[0]);
+}
+#else
 LLVM_END_WITH_NULL
 static inline Selector getKeywordSelector(ASTContext &Ctx,
                                           const char *First, ...) {
@@ -43,7 +54,17 @@ static inline Selector getKeywordSelector(ASTContext &Ctx,
   va_end(argp);
   return result;
 }
+#endif
 
+#if LLVM_VERSION_MAJOR > 4
+template <typename... IdentifierInfos>
+static inline void lazyInitKeywordSelector(Selector &Sel, ASTContext &Ctx,
+                                           IdentifierInfos *... IIs) {
+  if (!Sel.isNull())
+    return;
+  Sel = getKeywordSelector(Ctx, IIs...);
+}
+#else
 LLVM_END_WITH_NULL
 static inline void lazyInitKeywordSelector(Selector &Sel, ASTContext &Ctx,
                                            const char *First, ...) {
@@ -54,6 +75,7 @@ static inline void lazyInitKeywordSelector(Selector &Sel, ASTContext &Ctx,
   Sel = getKeywordSelectorImpl(Ctx, First, argp);
   va_end(argp);
 }
+#endif
 
 static inline void lazyInitNullarySelector(Selector &Sel, ASTContext &Ctx,
                                            const char *Name) {

@@ -42,7 +42,9 @@
 
 using clang::format::FormatStyle;
 
+#if LLVM_VERSION_MAJOR < 5
 LLVM_YAML_IS_FLOW_SEQUENCE_VECTOR(std::string)
+#endif
 LLVM_YAML_IS_SEQUENCE_VECTOR(clang::format::FormatStyle::IncludeCategory)
 
 namespace llvm {
