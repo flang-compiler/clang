@@ -67,7 +67,8 @@ static bool needFortranLibs(const Driver &D, const ArgList &Args) {
 /// \brief Determine if Fortran "main" object is needed
 static bool needFortranMain(const Driver &D, const ArgList &Args) {
   return (needFortranLibs(D, Args)
-       && !Args.hasArg(options::OPT_no_fortran_main));
+       && (!Args.hasArg(options::OPT_Mnomain) ||
+           !Args.hasArg(options::OPT_no_fortran_main)));
 }
 
 static void handleTargetFeaturesGroup(const ArgList &Args,
@@ -305,7 +306,7 @@ static void AddLinkerInputs(const ToolChain &TC, const InputInfoList &Inputs,
   }
 
   // Claim "no Fortran main" arguments
-  for (auto Arg : Args.filtered(options::OPT_no_fortran_main)) {
+  for (auto Arg : Args.filtered(options::OPT_no_fortran_main, options::OPT_Mnomain)) {
     Arg->claim();
   }
 
@@ -4138,6 +4139,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   ArgStringList CommonCmdArgs;
   ArgStringList UpperCmdArgs;
   ArgStringList LowerCmdArgs;
+  bool NeedIEEE = true;
 
   // Check number of inputs for sanity. We need at least one input.
   assert(Inputs.size() >= 1 && "Must have at least one input.");
@@ -4160,15 +4162,31 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   C.addTempFile(ILMFile);
 
   /***** Process common args *****/
+
+  // Override IEEE mode if needed
+  if (Args.hasArg(options::OPT_Ofast) ||
+      Args.hasArg(options::OPT_ffast_math) ||
+      Args.hasArg(options::OPT_fno_fast_math) ||
+      Args.hasArg(options::OPT_Kieee_on) ||
+      Args.hasArg(options::OPT_Kieee_off)) {
+    auto A = Args.getLastArg(options::OPT_Ofast,
+                             options::OPT_ffast_math,
+                             options::OPT_fno_fast_math,
+                             options::OPT_Kieee_on,
+                             options::OPT_Kieee_off);
+    auto Opt = A->getOption();
+    if (Opt.matches(options::OPT_Ofast) ||
+        Opt.matches(options::OPT_ffast_math) ||
+        Opt.matches(options::OPT_Kieee_off)) {
+      NeedIEEE = false;
+    }
+  }
+
   // -Kieee is on by default
   if (!Args.hasArg(options::OPT_Kieee_off)) {
-    // Enable IEEE arithmetic
     CommonCmdArgs.push_back("-y"); // Common: -y 129 2
     CommonCmdArgs.push_back("129");
     CommonCmdArgs.push_back("2");
-    // Lower: -ieee 1
-    LowerCmdArgs.push_back("-ieee");
-    LowerCmdArgs.push_back("1");
     // Lower: -x 6 0x100
     LowerCmdArgs.push_back("-x");
     LowerCmdArgs.push_back("6");
@@ -4189,9 +4207,6 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
       Arg->claim();
     }
   } else {
-    // Lower: -ieee 0
-    LowerCmdArgs.push_back("-ieee");
-    LowerCmdArgs.push_back("0");
     for (auto Arg : Args.filtered(options::OPT_Kieee_off)) {
       Arg->claim();
     }
@@ -4292,7 +4307,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   // Treat backslashes as regular characters
-  for (auto Arg : Args.filtered(options::OPT_fnobackslash)) {
+  for (auto Arg : Args.filtered(options::OPT_fnobackslash, options::OPT_Mbackslash)) {
     Arg->claim();
     CommonCmdArgs.push_back("-x");
     CommonCmdArgs.push_back("124");
@@ -4300,7 +4315,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   // Treat backslashes as C-style escape characters
-  for (auto Arg : Args.filtered(options::OPT_fbackslash)) {
+  for (auto Arg : Args.filtered(options::OPT_fbackslash, options::OPT_Mnobackslash)) {
     Arg->claim();
     CommonCmdArgs.push_back("-y");
     CommonCmdArgs.push_back("124");
@@ -4396,24 +4411,26 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   // -Minline has no effect
-  if (Arg *A = Args.getLastArg(options::OPT_Minline)) {
+  if (Arg *A = Args.getLastArg(options::OPT_Minline_on)) {
     getToolChain().getDriver().Diag(diag::warn_drv_clang_unsupported)
       << A->getAsString(Args);
   }
 
   // Handle -fdefault-real-8 (and its alias, -r8) and -fno-default-real-8
-  if (Arg *A = Args.getLastArg(options::OPT_f_default_real_8,
-                               options::OPT_fno_default_real_8)) {
+  if (Arg *A = Args.getLastArg(options::OPT_r8,
+                               options::OPT_default_real_8_f,
+                               options::OPT_default_real_8_fno)) {
     const char * fl;
     // For -f version add -x flag, for -fno add -y
-    if (A->getOption().matches(options::OPT_f_default_real_8)) {
-      fl = "-x";
-    } else {
+    if (A->getOption().matches(options::OPT_default_real_8_fno)) {
       fl = "-y";
+    } else {
+      fl = "-x";
     }
 
-    for (Arg *A : Args.filtered(options::OPT_f_default_real_8,
-                                options::OPT_fno_default_real_8)) {
+    for (Arg *A : Args.filtered(options::OPT_r8,
+                                options::OPT_default_real_8_f,
+                                options::OPT_default_real_8_fno)) {
       A->claim();
     }
 
@@ -4426,14 +4443,15 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   // Process and claim -i8/-fdefault-integer-8/-fno-default-integer-8 argument
-  if (Arg *A = Args.getLastArg(options::OPT_f_default_integer_8,
-                               options::OPT_fno_default_integer_8)) {
+  if (Arg *A = Args.getLastArg(options::OPT_i8,
+                               options::OPT_default_integer_8_f,
+                               options::OPT_default_integer_8_fno)) {
     const char * fl;
 
-    if (A->getOption().matches(options::OPT_f_default_integer_8)) {
-      fl = "-x";
-    } else {
+    if (A->getOption().matches(options::OPT_default_integer_8_fno)) {
       fl = "-y";
+    } else {
+      fl = "-x";
     }
 
     UpperCmdArgs.push_back(fl);
@@ -4492,20 +4510,23 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     }
   }
 
-  // For -Mflushz set -x 129 2 for second part of Fortran frontend
-  for (Arg *A: Args.filtered(options::OPT_Mflushz_on)) {
-    A->claim();
-    LowerCmdArgs.push_back("-x");
-    LowerCmdArgs.push_back("129");
-    LowerCmdArgs.push_back("2");
-  }
-
-  // For -Mnoflushz set -y 129 2 for second part of Fortran frontend
-  for (Arg *A: Args.filtered(options::OPT_Mflushz_off)) {
-    A->claim();
+  // Flush to zero mode
+  // Disabled by default, but can be enabled by a switch
+  if (Args.hasArg(options::OPT_Mflushz_on)) {
+    // For -Mflushz set -x 129 2 for second part of Fortran frontend
+    for (Arg *A: Args.filtered(options::OPT_Mflushz_on)) {
+      A->claim();
+      LowerCmdArgs.push_back("-x");
+      LowerCmdArgs.push_back("129");
+      LowerCmdArgs.push_back("2");
+    }
+  } else {
     LowerCmdArgs.push_back("-y");
     LowerCmdArgs.push_back("129");
     LowerCmdArgs.push_back("2");
+    for (Arg *A: Args.filtered(options::OPT_Mflushz_off)) {
+      A->claim();
+    }
   }
 
   // Enable FMA
@@ -4617,10 +4638,22 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     LowerCmdArgs.push_back("-debug");
   }
 
-  if (Arg *A = Args.getLastArg(options::OPT_ffast_math)) {
-    LowerCmdArgs.push_back("-x");
+  if (Arg *A = Args.getLastArg(options::OPT_ffast_math, options::OPT_fno_fast_math)) {
+    if (A->getOption().matches(options::OPT_ffast_math)) {
+      LowerCmdArgs.push_back("-x");
+    } else {
+      LowerCmdArgs.push_back("-y");
+    }
     LowerCmdArgs.push_back("216");
     LowerCmdArgs.push_back("1");
+  }
+
+  // IEEE compatibility mode
+  LowerCmdArgs.push_back("-ieee");
+  if (NeedIEEE) {
+    LowerCmdArgs.push_back("1");
+  } else {
+    LowerCmdArgs.push_back("0");
   }
 
   /***** Upper part of the Fortran frontend *****/
