@@ -70,6 +70,9 @@
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/Triple.h"
 #include "llvm/Bitcode/BitstreamReader.h"
+#if LLVM_VERSION_MAJOR > 4
+#include "llvm/Support/Error.h"
+#endif
 #include "llvm/Support/Compression.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -1279,8 +1282,13 @@ bool ASTReader::ReadSLocEntry(int ID) {
 
     if (RecCode == SM_SLOC_BUFFER_BLOB_COMPRESSED) {
       SmallString<0> Uncompressed;
+#if LLVM_VERSION_MAJOR > 4
+      if (llvm::Error E =
+              llvm::zlib::uncompress(Blob, Uncompressed, Record[0])) {
+#else
       if (llvm::zlib::uncompress(Blob, Uncompressed, Record[0]) !=
           llvm::zlib::StatusOK) {
+#endif
         Error("could not decompress embedded file contents");
         return nullptr;
       }

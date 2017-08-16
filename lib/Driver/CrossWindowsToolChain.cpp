@@ -9,7 +9,11 @@
 
 #include "ToolChains.h"
 #include "clang/Driver/Driver.h"
+#if LLVM_VERSION_MAJOR > 4
 #include "clang/Driver/Options.h"
+#else
+#include "clang/Driver/Options-4.0.h"
+#endif
 #include "llvm/Option/ArgList.h"
 #include "llvm/Support/Path.h"
 

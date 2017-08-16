@@ -30,7 +30,6 @@
 #include "llvm/ADT/Triple.h"
 #include "llvm/MC/MCSectionMachO.h"
 #include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/TargetParser.h"
 #include <algorithm>
 #include <memory>
 
@@ -4838,9 +4837,14 @@ class ARMTargetInfo : public TargetInfo {
     FP_Neon
   } FPMath;
 
-  unsigned ArchISA;
-  unsigned ArchKind = llvm::ARM::AK_ARMV4T;
-  unsigned ArchProfile;
+  MigARMISAKindTy ArchISA;
+  MigARMArchKindTy ArchKind =
+#if LLVM_VERSION_MAJOR > 5
+      llvm::ARM::ArchKind::ARMV4T;
+#else
+      llvm::ARM::AK_ARMV4T;
+#endif
+  MigARMProfileKindTy ArchProfile;
   unsigned ArchVersion;
 
   unsigned FPU : 5;
@@ -4884,9 +4888,14 @@ class ARMTargetInfo : public TargetInfo {
 
     // size_t is unsigned long on MachO-derived environments, NetBSD,
     // OpenBSD and Bitrig.
+    // Bitrig OS was merged back into OpenBSD, so Bitrig support has been
+    // removed from Clang/LLVM https://reviews.llvm.org/D35707
     if (T.isOSBinFormatMachO() || T.getOS() == llvm::Triple::NetBSD ||
-        T.getOS() == llvm::Triple::OpenBSD ||
-        T.getOS() == llvm::Triple::Bitrig)
+        T.getOS() == llvm::Triple::OpenBSD
+#if LLVM_VERSION_MAJOR < 6
+        || T.getOS() == llvm::Triple::Bitrig
+#endif
+        )
       SizeType = UnsignedLong;
     else
       SizeType = UnsignedInt;
@@ -4988,13 +4997,13 @@ class ARMTargetInfo : public TargetInfo {
 
     ArchISA     = llvm::ARM::parseArchISA(ArchName);
     CPU         = llvm::ARM::getDefaultCPU(ArchName);
-    unsigned AK = llvm::ARM::parseArch(ArchName);
-    if (AK != llvm::ARM::AK_INVALID)
+    MigARMArchKindTy AK = llvm::ARM::parseArch(ArchName);
+    if (AK != MigARMArchKindINVALID)
       ArchKind = AK;
     setArchInfo(ArchKind);
   }
 
-  void setArchInfo(unsigned Kind) {
+  void setArchInfo(MigARMArchKindTy Kind) {
     StringRef SubArch;
 
     // cache TargetParser info
@@ -5012,10 +5021,16 @@ class ARMTargetInfo : public TargetInfo {
     // when triple does not specify a sub arch,
     // then we are not using inline atomics
     bool ShouldUseInlineAtomic =
-                   (ArchISA == llvm::ARM::IK_ARM   && ArchVersion >= 6) ||
-                   (ArchISA == llvm::ARM::IK_THUMB && ArchVersion >= 7);
+                   (ArchISA ==
+#if LLVM_VERSION_MAJOR > 5
+                    llvm::ARM::ISAKind::ARM
+#else
+                    llvm::ARM::IK_ARM
+#endif
+                    && ArchVersion >= 6) ||
+                   (ArchISA == MigARMISAKindEnumTHUMB && ArchVersion >= 7);
     // Cortex M does not support 8 byte atomics, while general Thumb2 does.
-    if (ArchProfile == llvm::ARM::PK_M) {
+    if (ArchProfile == MigARMProfileKindEnumM) {
       MaxAtomicPromoteWidth = 32;
       if (ShouldUseInlineAtomic)
         MaxAtomicInlineWidth = 32;
@@ -5028,7 +5043,7 @@ class ARMTargetInfo : public TargetInfo {
   }
 
   bool isThumb() const {
-    return (ArchISA == llvm::ARM::IK_THUMB);
+    return (ArchISA == MigARMISAKindEnumTHUMB);
   }
 
   bool supportsThumb() const {
@@ -5046,40 +5061,84 @@ class ARMTargetInfo : public TargetInfo {
     switch(ArchKind) {
     default:
       return llvm::ARM::getCPUAttr(ArchKind);
-    case llvm::ARM::AK_ARMV6M:
+    case MigARMArchKindARMV6M:
       return "6M";
+#if LLVM_VERSION_MAJOR > 5
+    case llvm::ARM::ArchKind::ARMV7S:
+#else
     case llvm::ARM::AK_ARMV7S:
+#endif
       return "7S";
+#if LLVM_VERSION_MAJOR > 5
+    case llvm::ARM::ArchKind::ARMV7A:
+#else
     case llvm::ARM::AK_ARMV7A:
+#endif
       return "7A";
+#if LLVM_VERSION_MAJOR > 5
+    case llvm::ARM::ArchKind::ARMV7R:
+#else
     case llvm::ARM::AK_ARMV7R:
+#endif
       return "7R";
-    case llvm::ARM::AK_ARMV7M:
+    case MigARMArchKindARMV7M:
       return "7M";
+#if LLVM_VERSION_MAJOR > 5
+    case llvm::ARM::ArchKind::ARMV7EM:
+#else
     case llvm::ARM::AK_ARMV7EM:
+#endif
       return "7EM";
+#if LLVM_VERSION_MAJOR > 5
+    case llvm::ARM::ArchKind::ARMV8A:
+#else
     case llvm::ARM::AK_ARMV8A:
+#endif
       return "8A";
-    case llvm::ARM::AK_ARMV8_1A:
+    case MigARMArchKindARMV8_1A:
       return "8_1A";
+#if LLVM_VERSION_MAJOR > 5
+    case llvm::ARM::ArchKind::ARMV8_2A:
+#else
     case llvm::ARM::AK_ARMV8_2A:
+#endif
       return "8_2A";
+#if LLVM_VERSION_MAJOR > 5
+    case llvm::ARM::ArchKind::ARMV8MBaseline:
+#else
     case llvm::ARM::AK_ARMV8MBaseline:
+#endif
       return "8M_BASE";
+#if LLVM_VERSION_MAJOR > 5
+    case llvm::ARM::ArchKind::ARMV8MMainline:
+#else
     case llvm::ARM::AK_ARMV8MMainline:
+#endif
       return "8M_MAIN";
+#if LLVM_VERSION_MAJOR > 5
+    case llvm::ARM::ArchKind::ARMV8R:
+#else
     case llvm::ARM::AK_ARMV8R:
+#endif
       return "8R";
     }
   }
 
   StringRef getCPUProfile() const {
     switch(ArchProfile) {
+#if LLVM_VERSION_MAJOR > 5
+    case llvm::ARM::ProfileKind::A:
+#else
     case llvm::ARM::PK_A:
+#endif
       return "A";
+#if LLVM_VERSION_MAJOR > 5
+    case llvm::ARM::ProfileKind::R:
+#else
     case llvm::ARM::PK_R:
+#endif
       return "R";
-    case llvm::ARM::PK_M:
+    case MigARMProfileKindEnumM:
       return "M";
     default:
       return "";
@@ -5116,7 +5175,7 @@ public:
       // the frontend matches that.
       if (Triple.getEnvironment() == llvm::Triple::EABI ||
           Triple.getOS() == llvm::Triple::UnknownOS ||
-          ArchProfile == llvm::ARM::PK_M) {
+          ArchProfile == MigARMProfileKindEnumM) {
         setABI("aapcs");
       } else if (Triple.isWatchABI()) {
         setABI("aapcs16");
@@ -5199,7 +5258,7 @@ public:
                  const std::vector<std::string> &FeaturesVec) const override {
 
     std::vector<StringRef> TargetFeatures;
-    unsigned Arch = llvm::ARM::parseArch(getTriple().getArchName());
+    MigARMArchKindTy Arch = llvm::ARM::parseArch(getTriple().getArchName());
 
     // get default FPU features
     unsigned FPUKind = llvm::ARM::getDefaultFPU(CPU, Arch);
@@ -5271,15 +5330,21 @@ public:
 
     switch (ArchVersion) {
     case 6:
-      if (ArchProfile == llvm::ARM::PK_M)
+      if (ArchProfile == MigARMProfileKindEnumM)
         LDREX = 0;
-      else if (ArchKind == llvm::ARM::AK_ARMV6K)
+      else if (ArchKind ==
+#if LLVM_VERSION_MAJOR > 5
+              llvm::ARM::ArchKind::ARMV6K
+#else
+              llvm::ARM::AK_ARMV6K
+#endif
+              )
         LDREX = LDREX_D | LDREX_W | LDREX_H | LDREX_B ;
       else
         LDREX = LDREX_W;
       break;
     case 7:
-      if (ArchProfile == llvm::ARM::PK_M)
+      if (ArchProfile == MigARMProfileKindEnumM)
         LDREX = LDREX_W | LDREX_H | LDREX_B ;
       else
         LDREX = LDREX_D | LDREX_W | LDREX_H | LDREX_B ;
@@ -5323,7 +5388,7 @@ public:
     if (Name != "generic")
       setArchInfo(llvm::ARM::parseCPUArch(Name));
 
-    if (ArchKind == llvm::ARM::AK_INVALID)
+    if (ArchKind == MigARMArchKindINVALID)
       return false;
     setAtomic();
     CPU = Name;
@@ -5373,7 +5438,7 @@ public:
     // __ARM_ARCH_ISA_ARM is defined to 1 if the core supports the ARM ISA.  It
     // is not defined for the M-profile.
     // NOTE that the default profile is assumed to be 'A'
-    if (CPUProfile.empty() || ArchProfile != llvm::ARM::PK_M)
+    if (CPUProfile.empty() || ArchProfile != MigARMProfileKindEnumM)
       Builder.defineMacro("__ARM_ARCH_ISA_ARM", "1");
 
     // __ARM_ARCH_ISA_THUMB is defined to 1 if the core supports the original
@@ -5447,7 +5512,13 @@ public:
     if (SoftFloat)
       Builder.defineMacro("__SOFTFP__");
 
-    if (ArchKind == llvm::ARM::AK_XSCALE)
+    if (ArchKind ==
+#if LLVM_VERSION_MAJOR > 5
+            llvm::ARM::ArchKind::XSCALE
+#else
+            llvm::ARM::AK_XSCALE
+#endif
+            )
       Builder.defineMacro("__XSCALE__");
 
     if (isThumb()) {
@@ -5528,7 +5599,7 @@ public:
     if (Opts.UnsafeFPMath)
       Builder.defineMacro("__ARM_FP_FAST", "1");
 
-    if (ArchKind == llvm::ARM::AK_ARMV8_1A)
+    if (ArchKind == MigARMArchKindARMV8_1A)
       Builder.defineMacro("__ARM_FEATURE_QRDMX", "1");
   }
 
@@ -5982,7 +6053,7 @@ public:
   bool setCPU(const std::string &Name) override {
     return Name == "generic" ||
            llvm::AArch64::parseCPUArch(Name) !=
-           static_cast<unsigned>(llvm::AArch64::ArchKind::AK_INVALID);
+           static_cast<MigAArch64ArchKindTy>(MigARMArchKindINVALID);
   }
 
   void getTargetDefines(const LangOptions &Opts,
@@ -8621,8 +8692,10 @@ static TargetInfo *AllocateTarget(const llvm::Triple &Triple,
       return new NetBSDTargetInfo<ARMleTargetInfo>(Triple, Opts);
     case llvm::Triple::OpenBSD:
       return new OpenBSDTargetInfo<ARMleTargetInfo>(Triple, Opts);
+#if LLVM_VERSION_MAJOR < 6
     case llvm::Triple::Bitrig:
       return new BitrigTargetInfo<ARMleTargetInfo>(Triple, Opts);
+#endif
     case llvm::Triple::RTEMS:
       return new RTEMSTargetInfo<ARMleTargetInfo>(Triple, Opts);
     case llvm::Triple::NaCl:
@@ -8659,8 +8732,10 @@ static TargetInfo *AllocateTarget(const llvm::Triple &Triple,
       return new NetBSDTargetInfo<ARMbeTargetInfo>(Triple, Opts);
     case llvm::Triple::OpenBSD:
       return new OpenBSDTargetInfo<ARMbeTargetInfo>(Triple, Opts);
+#if LLVM_VERSION_MAJOR < 6
     case llvm::Triple::Bitrig:
       return new BitrigTargetInfo<ARMbeTargetInfo>(Triple, Opts);
+#endif
     case llvm::Triple::RTEMS:
       return new RTEMSTargetInfo<ARMbeTargetInfo>(Triple, Opts);
     case llvm::Triple::NaCl:
@@ -8886,8 +8961,10 @@ static TargetInfo *AllocateTarget(const llvm::Triple &Triple,
       return new NetBSDI386TargetInfo(Triple, Opts);
     case llvm::Triple::OpenBSD:
       return new OpenBSDI386TargetInfo(Triple, Opts);
+#if LLVM_VERSION_MAJOR < 6
     case llvm::Triple::Bitrig:
       return new BitrigI386TargetInfo(Triple, Opts);
+#endif
     case llvm::Triple::FreeBSD:
       return new FreeBSDTargetInfo<X86_32TargetInfo>(Triple, Opts);
     case llvm::Triple::Fuchsia:
@@ -8943,8 +9020,10 @@ static TargetInfo *AllocateTarget(const llvm::Triple &Triple,
       return new NetBSDTargetInfo<X86_64TargetInfo>(Triple, Opts);
     case llvm::Triple::OpenBSD:
       return new OpenBSDX86_64TargetInfo(Triple, Opts);
+#if LLVM_VERSION_MAJOR < 6
     case llvm::Triple::Bitrig:
       return new BitrigX86_64TargetInfo(Triple, Opts);
+#endif
     case llvm::Triple::FreeBSD:
       return new FreeBSDTargetInfo<X86_64TargetInfo>(Triple, Opts);
     case llvm::Triple::Fuchsia:

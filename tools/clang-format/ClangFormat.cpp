@@ -310,8 +310,12 @@ static bool format(StringRef FileName) {
 }  // namespace format
 }  // namespace clang
 
+#if LLVM_VERSION_MAJOR > 5
+static void PrintVersion(raw_ostream &OS) {
+#else
 static void PrintVersion() {
   raw_ostream &OS = outs();
+#endif
   OS << clang::getClangToolFullVersion("clang-format") << '\n';
 }
 

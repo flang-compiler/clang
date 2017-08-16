@@ -233,19 +233,56 @@ void NilArgChecker::checkPreObjCMessage(const ObjCMethodCall &msg,
     if (StringSelectors.empty()) {
       ASTContext &Ctx = C.getASTContext();
       Selector Sels[] = {
-        getKeywordSelector(Ctx, "caseInsensitiveCompare", nullptr),
-        getKeywordSelector(Ctx, "compare", nullptr),
-        getKeywordSelector(Ctx, "compare", "options", nullptr),
-        getKeywordSelector(Ctx, "compare", "options", "range", nullptr),
-        getKeywordSelector(Ctx, "compare", "options", "range", "locale",
-                           nullptr),
-        getKeywordSelector(Ctx, "componentsSeparatedByCharactersInSet",
-                           nullptr),
-        getKeywordSelector(Ctx, "initWithFormat",
-                           nullptr),
-        getKeywordSelector(Ctx, "localizedCaseInsensitiveCompare", nullptr),
-        getKeywordSelector(Ctx, "localizedCompare", nullptr),
-        getKeywordSelector(Ctx, "localizedStandardCompare", nullptr),
+        getKeywordSelector(Ctx, "caseInsensitiveCompare"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                ),
+        getKeywordSelector(Ctx, "compare"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                ),
+        getKeywordSelector(Ctx, "compare", "options"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                ),
+        getKeywordSelector(Ctx, "compare", "options", "range"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                ),
+        getKeywordSelector(Ctx, "compare", "options", "range", "locale"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                ),
+        getKeywordSelector(Ctx, "componentsSeparatedByCharactersInSet"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                ),
+        getKeywordSelector(Ctx, "initWithFormat"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                ),
+        getKeywordSelector(Ctx, "localizedCaseInsensitiveCompare"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                ),
+        getKeywordSelector(Ctx, "localizedCompare"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                ),
+        getKeywordSelector(Ctx, "localizedStandardCompare"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                ),
       };
       for (Selector KnownSel : Sels)
         StringSelectors[KnownSel] = 0;
@@ -262,16 +299,40 @@ void NilArgChecker::checkPreObjCMessage(const ObjCMethodCall &msg,
 
     if (ArrayWithObjectSel.isNull()) {
       ASTContext &Ctx = C.getASTContext();
-      ArrayWithObjectSel = getKeywordSelector(Ctx, "arrayWithObject", nullptr);
-      AddObjectSel = getKeywordSelector(Ctx, "addObject", nullptr);
+      ArrayWithObjectSel = getKeywordSelector(Ctx, "arrayWithObject"
+#if LLVM_VERSION_MAJOR < 5
+              , nullptr
+#endif
+              );
+      AddObjectSel = getKeywordSelector(Ctx, "addObject"
+#if LLVM_VERSION_MAJOR < 5
+              , nullptr
+#endif
+              );
       InsertObjectAtIndexSel =
-        getKeywordSelector(Ctx, "insertObject", "atIndex", nullptr);
+        getKeywordSelector(Ctx, "insertObject", "atIndex"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                );
       ReplaceObjectAtIndexWithObjectSel =
-        getKeywordSelector(Ctx, "replaceObjectAtIndex", "withObject", nullptr);
+        getKeywordSelector(Ctx, "replaceObjectAtIndex", "withObject"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                );
       SetObjectAtIndexedSubscriptSel =
-        getKeywordSelector(Ctx, "setObject", "atIndexedSubscript", nullptr);
+        getKeywordSelector(Ctx, "setObject", "atIndexedSubscript"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                );
       ArrayByAddingObjectSel =
-        getKeywordSelector(Ctx, "arrayByAddingObject", nullptr);
+        getKeywordSelector(Ctx, "arrayByAddingObject"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                );
     }
 
     if (S == ArrayWithObjectSel || S == AddObjectSel ||
@@ -292,13 +353,29 @@ void NilArgChecker::checkPreObjCMessage(const ObjCMethodCall &msg,
     if (DictionaryWithObjectForKeySel.isNull()) {
       ASTContext &Ctx = C.getASTContext();
       DictionaryWithObjectForKeySel =
-        getKeywordSelector(Ctx, "dictionaryWithObject", "forKey", nullptr);
+        getKeywordSelector(Ctx, "dictionaryWithObject", "forKey"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                );
       SetObjectForKeySel =
-        getKeywordSelector(Ctx, "setObject", "forKey", nullptr);
+        getKeywordSelector(Ctx, "setObject", "forKey"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                );
       SetObjectForKeyedSubscriptSel =
-        getKeywordSelector(Ctx, "setObject", "forKeyedSubscript", nullptr);
+        getKeywordSelector(Ctx, "setObject", "forKeyedSubscript"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                );
       RemoveObjectForKeySel =
-        getKeywordSelector(Ctx, "removeObjectForKey", nullptr);
+        getKeywordSelector(Ctx, "removeObjectForKey"
+#if LLVM_VERSION_MAJOR < 5
+                , nullptr
+#endif
+                );
     }
 
     if (S == DictionaryWithObjectForKeySel || S == SetObjectForKeySel) {

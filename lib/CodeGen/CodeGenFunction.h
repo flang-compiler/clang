@@ -1848,9 +1848,12 @@ public:
   /// block. The caller is responsible for setting an appropriate alignment on
   /// the alloca.
   llvm::AllocaInst *CreateTempAlloca(llvm::Type *Ty,
-                                     const Twine &Name = "tmp");
+                                     const Twine &Name = "tmp",
+                                     llvm::Value *ArraySize = nullptr);
   Address CreateTempAlloca(llvm::Type *Ty, CharUnits align,
-                           const Twine &Name = "tmp");
+                           const Twine &Name = "tmp",
+                           llvm::Value *ArraySize = nullptr,
+                           bool CastToDefaultAddrSpace = true);
 
   /// CreateDefaultAlignedTempAlloca - This creates an alloca with the
   /// default ABI alignment of the given LLVM type.

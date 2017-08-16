@@ -29,7 +29,12 @@ CODEGENOPT(Name, Bits, Default)
 #endif
 
 CODEGENOPT(DisableIntegratedAS, 1, 0) ///< -no-integrated-as
+#if LLVM_VERSION_MAJOR > 4
+ENUM_CODEGENOPT(CompressDebugSections, llvm::DebugCompressionType, 2,
+                llvm::DebugCompressionType::None)
+#else
 CODEGENOPT(CompressDebugSections, 1, 0) ///< -Wa,-compress-debug-sections
+#endif
 CODEGENOPT(RelaxELFRelocations, 1, 0) ///< -Wa,--mrelax-relocations
 CODEGENOPT(AsmVerbose        , 1, 0) ///< -dA, -fverbose-asm.
 CODEGENOPT(PreserveAsmComments, 1, 1) ///< -dA, -fno-preserve-as-comments.

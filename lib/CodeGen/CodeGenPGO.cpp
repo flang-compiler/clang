@@ -612,7 +612,12 @@ uint64_t PGOHash::finalize() {
   llvm::MD5::MD5Result Result;
   MD5.final(Result);
   using namespace llvm::support;
-  return endian::read<uint64_t, little, unaligned>(Result);
+  return
+#if LLVM_VERSION_MAJOR > 4
+      Result.low();
+#else
+      endian::read<uint64_t, little, unaligned>(Result);
+#endif
 }
 
 void CodeGenPGO::assignRegionCounters(GlobalDecl GD, llvm::Function *Fn) {

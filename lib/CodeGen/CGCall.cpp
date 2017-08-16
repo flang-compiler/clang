@@ -50,7 +50,12 @@ unsigned CodeGenTypes::ClangCallConvToLLVMCallConv(CallingConv CC) {
   case CC_X86FastCall: return llvm::CallingConv::X86_FastCall;
   case CC_X86RegCall: return llvm::CallingConv::X86_RegCall;
   case CC_X86ThisCall: return llvm::CallingConv::X86_ThisCall;
-  case CC_X86_64Win64: return llvm::CallingConv::X86_64_Win64;
+  case CC_X86_64Win64: return
+#if LLVM_VERSION_MAJOR > 4
+                       llvm::CallingConv::Win64;
+#else
+                       llvm::CallingConv::X86_64_Win64;
+#endif
   case CC_X86_64SysV: return llvm::CallingConv::X86_64_SysV;
   case CC_AAPCS: return llvm::CallingConv::ARM_AAPCS;
   case CC_AAPCS_VFP: return llvm::CallingConv::ARM_AAPCS_VFP;
@@ -1878,8 +1883,8 @@ void CodeGenModule::ConstructAttributeList(
 
   // Attach return attributes.
   if (RetAttrs.hasAttributes()) {
-    PAL.push_back(llvm::AttributeSet::get(
-        getLLVMContext(), llvm::AttributeSet::ReturnIndex, RetAttrs));
+    PAL.push_back(MigAttributeList::get(
+        getLLVMContext(), MigAttributeList::ReturnIndex, RetAttrs));
   }
 
   bool hasUsedSRet = false;
@@ -1891,7 +1896,7 @@ void CodeGenModule::ConstructAttributeList(
     hasUsedSRet = true;
     if (RetAI.getInReg())
       SRETAttrs.addAttribute(llvm::Attribute::InReg);
-    PAL.push_back(llvm::AttributeSet::get(
+    PAL.push_back(MigAttributeList::get(
         getLLVMContext(), IRFunctionArgs.getSRetArgNo() + 1, SRETAttrs));
   }
 
@@ -1899,7 +1904,7 @@ void CodeGenModule::ConstructAttributeList(
   if (IRFunctionArgs.hasInallocaArg()) {
     llvm::AttrBuilder Attrs;
     Attrs.addAttribute(llvm::Attribute::InAlloca);
-    PAL.push_back(llvm::AttributeSet::get(
+    PAL.push_back(MigAttributeList::get(
         getLLVMContext(), IRFunctionArgs.getInallocaArgNo() + 1, Attrs));
   }
 
@@ -1914,7 +1919,7 @@ void CodeGenModule::ConstructAttributeList(
     // Add attribute for padding argument, if necessary.
     if (IRFunctionArgs.hasPaddingArg(ArgNo)) {
       if (AI.getPaddingInReg())
-        PAL.push_back(llvm::AttributeSet::get(
+        PAL.push_back(MigAttributeList::get(
             getLLVMContext(), IRFunctionArgs.getPaddingArgNo(ArgNo) + 1,
             llvm::Attribute::InReg));
     }
@@ -2031,17 +2036,16 @@ void CodeGenModule::ConstructAttributeList(
       unsigned FirstIRArg, NumIRArgs;
       std::tie(FirstIRArg, NumIRArgs) = IRFunctionArgs.getIRArgs(ArgNo);
       for (unsigned i = 0; i < NumIRArgs; i++)
-        PAL.push_back(llvm::AttributeSet::get(getLLVMContext(),
-                                              FirstIRArg + i + 1, Attrs));
+        PAL.push_back(MigAttributeList::get(getLLVMContext(),
+                                            FirstIRArg + i + 1, Attrs));
     }
   }
   assert(ArgNo == FI.arg_size());
 
   if (FuncAttrs.hasAttributes())
-    PAL.push_back(llvm::
-                  AttributeSet::get(getLLVMContext(),
-                                    llvm::AttributeSet::FunctionIndex,
-                                    FuncAttrs));
+    PAL.push_back(MigAttributeList::get(getLLVMContext(),
+                                        MigAttributeList::FunctionIndex,
+                                        FuncAttrs));
 }
 
 /// An argument came in as a promoted argument; demote it back to its
@@ -2152,8 +2156,14 @@ void CodeGenFunction::EmitFunctionProlog(const CGFunctionInfo &FI,
   if (IRFunctionArgs.hasSRetArg()) {
     auto AI = cast<llvm::Argument>(FnArgs[IRFunctionArgs.getSRetArgNo()]);
     AI->setName("agg.result");
-    AI->addAttr(llvm::AttributeSet::get(getLLVMContext(), AI->getArgNo() + 1,
-                                        llvm::Attribute::NoAlias));
+    AI->addAttr(
+#if LLVM_VERSION_MAJOR > 4
+            llvm::Attribute::NoAlias
+#else
+            llvm::AttributeSet::get(getLLVMContext(), AI->getArgNo() + 1,
+                                      llvm::Attribute::NoAlias)
+#endif
+            );
   }
 
   // Track if we received the parameter as a pointer (indirect, byval, or
@@ -2244,9 +2254,15 @@ void CodeGenFunction::EmitFunctionProlog(const CGFunctionInfo &FI,
         if (const ParmVarDecl *PVD = dyn_cast<ParmVarDecl>(Arg)) {
           if (getNonNullAttr(CurCodeDecl, PVD, PVD->getType(),
                              PVD->getFunctionScopeIndex()))
-            AI->addAttr(llvm::AttributeSet::get(getLLVMContext(),
+            AI->addAttr(
+#if LLVM_VERSION_MAJOR > 4
+                    llvm::Attribute::NonNull
+#else
+                    llvm::AttributeSet::get(getLLVMContext(),
                                                 AI->getArgNo() + 1,
-                                                llvm::Attribute::NonNull));
+                                                llvm::Attribute::NonNull)
+#endif
+                    );
 
           QualType OTy = PVD->getOriginalType();
           if (const auto *ArrTy =
@@ -2263,12 +2279,22 @@ void CodeGenFunction::EmitFunctionProlog(const CGFunctionInfo &FI,
                 llvm::AttrBuilder Attrs;
                 Attrs.addDereferenceableAttr(
                   getContext().getTypeSizeInChars(ETy).getQuantity()*ArrSize);
+#if LLVM_VERSION_MAJOR > 4
+                AI->addAttrs(Attrs);
+#else
                 AI->addAttr(llvm::AttributeSet::get(getLLVMContext(),
                                                     AI->getArgNo() + 1, Attrs));
+#endif
               } else if (getContext().getTargetAddressSpace(ETy) == 0) {
-                AI->addAttr(llvm::AttributeSet::get(getLLVMContext(),
+                AI->addAttr(
+#if LLVM_VERSION_MAJOR > 4
+                        llvm::Attribute::NonNull
+#else
+                        llvm::AttributeSet::get(getLLVMContext(),
                                                     AI->getArgNo() + 1,
-                                                    llvm::Attribute::NonNull));
+                                                    llvm::Attribute::NonNull)
+#endif
+                        );
               }
             }
           } else if (const auto *ArrTy =
@@ -2278,9 +2304,15 @@ void CodeGenFunction::EmitFunctionProlog(const CGFunctionInfo &FI,
             // we know that it must be nonnull.
             if (ArrTy->getSizeModifier() == VariableArrayType::Static &&
                 !getContext().getTargetAddressSpace(ArrTy->getElementType()))
-              AI->addAttr(llvm::AttributeSet::get(getLLVMContext(),
+              AI->addAttr(
+#if LLVM_VERSION_MAJOR > 4
+                      llvm::Attribute::NonNull
+#else
+                      llvm::AttributeSet::get(getLLVMContext(),
                                                   AI->getArgNo() + 1,
-                                                  llvm::Attribute::NonNull));
+                                                  llvm::Attribute::NonNull)
+#endif
+                      );
           }
 
           const auto *AVAttr = PVD->getAttr<AlignValueAttr>();
@@ -2298,15 +2330,25 @@ void CodeGenFunction::EmitFunctionProlog(const CGFunctionInfo &FI,
 
             llvm::AttrBuilder Attrs;
             Attrs.addAlignmentAttr(Alignment);
+#if LLVM_VERSION_MAJOR > 4
+            AI->addAttrs(Attrs);
+#else
             AI->addAttr(llvm::AttributeSet::get(getLLVMContext(),
                                                 AI->getArgNo() + 1, Attrs));
+#endif
           }
         }
 
         if (Arg->getType().isRestrictQualified())
-          AI->addAttr(llvm::AttributeSet::get(getLLVMContext(),
+          AI->addAttr(
+#if LLVM_VERSION_MAJOR > 4
+                  llvm::Attribute::NoAlias
+#else
+                  llvm::AttributeSet::get(getLLVMContext(),
                                               AI->getArgNo() + 1,
-                                              llvm::Attribute::NoAlias));
+                                              llvm::Attribute::NoAlias)
+#endif
+                  );
 
         // LLVM expects swifterror parameters to be used in very restricted
         // ways.  Copy the value into a less-restricted temporary.
@@ -3571,12 +3613,17 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
   Address ArgMemory = Address::invalid();
   const llvm::StructLayout *ArgMemoryLayout = nullptr;
   if (llvm::StructType *ArgStruct = CallInfo.getArgStruct()) {
-    ArgMemoryLayout = CGM.getDataLayout().getStructLayout(ArgStruct);
+    const llvm::DataLayout &DL = CGM.getDataLayout();
+    ArgMemoryLayout = DL.getStructLayout(ArgStruct);
     llvm::Instruction *IP = CallArgs.getStackBase();
     llvm::AllocaInst *AI;
     if (IP) {
       IP = IP->getNextNode();
-      AI = new llvm::AllocaInst(ArgStruct, "argmem", IP);
+      AI = new llvm::AllocaInst(ArgStruct,
+#if LLVM_VERSION_MAJOR > 4
+                                DL.getAllocaAddrSpace(),
+#endif
+                                "argmem", IP);
     } else {
       AI = CreateTempAlloca(ArgStruct, "argmem");
     }
@@ -3977,8 +4024,8 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
                              Callee.getAbstractInfo(),
                              AttributeList, CallingConv,
                              /*AttrOnCallSite=*/true);
-  llvm::AttributeSet Attrs = llvm::AttributeSet::get(getLLVMContext(),
-                                                     AttributeList);
+  MigAttributeList Attrs = MigAttributeList::get(getLLVMContext(),
+                                                 AttributeList);
 
   // Apply some call-site-specific attributes.
   // TODO: work this into building the attribute set.
@@ -3990,14 +4037,14 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
         Callee.getAbstractInfo().getCalleeDecl()->hasAttr<NoInlineAttr>())) {
     Attrs =
         Attrs.addAttribute(getLLVMContext(),
-                           llvm::AttributeSet::FunctionIndex,
+                           MigAttributeList::FunctionIndex,
                            llvm::Attribute::AlwaysInline);
   }
 
   // Disable inlining inside SEH __try blocks.
   if (isSEHTryScope()) {
     Attrs =
-        Attrs.addAttribute(getLLVMContext(), llvm::AttributeSet::FunctionIndex,
+        Attrs.addAttribute(getLLVMContext(), MigAttributeList::FunctionIndex,
                            llvm::Attribute::NoInline);
   }
 
@@ -4014,7 +4061,7 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
     CannotThrow = true;
   } else {
     // Otherwise, nounwind call sites will never throw.
-    CannotThrow = Attrs.hasAttribute(llvm::AttributeSet::FunctionIndex,
+    CannotThrow = Attrs.hasAttribute(MigAttributeList::FunctionIndex,
                                      llvm::Attribute::NoUnwind);
   }
   llvm::BasicBlock *InvokeDest = CannotThrow ? nullptr : getInvokeDest();

@@ -3562,7 +3562,13 @@ QualType ASTContext::getSubstTemplateTypeParmPackType(
     = new (*this, TypeAlignment) SubstTemplateTypeParmPackType(Parm, Canon,
                                                                ArgPack);
   Types.push_back(SubstParm);
-  SubstTemplateTypeParmTypes.InsertNode(SubstParm, InsertPos);
+#if LLVM_VERSION_MAJOR > 4
+  SubstTemplateTypeParmPackTypes.
+#else
+  // FIXME: clang-4.x's bug?
+  SubstTemplateTypeParmTypes.
+#endif
+      InsertNode(SubstParm, InsertPos);
   return QualType(SubstParm, 0);  
 }
 

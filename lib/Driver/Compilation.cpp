@@ -11,7 +11,11 @@
 #include "clang/Driver/Action.h"
 #include "clang/Driver/Driver.h"
 #include "clang/Driver/DriverDiagnostic.h"
+#if LLVM_VERSION_MAJOR > 4
 #include "clang/Driver/Options.h"
+#else
+#include "clang/Driver/Options-4.0.h"
+#endif
 #include "clang/Driver/ToolChain.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Option/ArgList.h"

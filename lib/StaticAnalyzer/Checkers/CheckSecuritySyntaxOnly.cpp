@@ -32,7 +32,9 @@ static bool isArc4RandomAvailable(const ASTContext &Ctx) {
          T.getOS() == llvm::Triple::FreeBSD ||
          T.getOS() == llvm::Triple::NetBSD ||
          T.getOS() == llvm::Triple::OpenBSD ||
+#if LLVM_VERSION_MAJOR < 6
          T.getOS() == llvm::Triple::Bitrig ||
+#endif
          T.getOS() == llvm::Triple::DragonFly;
 }
 

@@ -728,7 +728,11 @@ CGOpenMPRuntime::CGOpenMPRuntime(CodeGenModule &CGM)
   IdentTy = llvm::StructType::create(
       "ident_t", CGM.Int32Ty /* reserved_1 */, CGM.Int32Ty /* flags */,
       CGM.Int32Ty /* reserved_2 */, CGM.Int32Ty /* reserved_3 */,
-      CGM.Int8PtrTy /* psource */, nullptr);
+      CGM.Int8PtrTy /* psource */
+#if LLVM_VERSION_MAJOR < 5
+      , nullptr
+#endif
+      );
   KmpCriticalNameTy = llvm::ArrayType::get(CGM.Int32Ty, /*NumElements*/ 8);
 
   loadOffloadInfoMetadata();
@@ -3764,7 +3768,12 @@ CGOpenMPRuntime::emitTaskInit(CodeGenFunction &CGF, SourceLocation Loc,
   // Emit initial values for private copies (if any).
   llvm::Value *TaskPrivatesMap = nullptr;
   auto *TaskPrivatesMapTy =
-      std::next(cast<llvm::Function>(TaskFunction)->getArgumentList().begin(),
+      std::next(
+#if LLVM_VERSION_MAJOR > 4
+                cast<llvm::Function>(TaskFunction)->arg_begin(),
+#else
+                cast<llvm::Function>(TaskFunction)->getArgumentList().begin(),
+#endif
                 3)
           ->getType();
   if (!Privates.empty()) {

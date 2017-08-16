@@ -1608,8 +1608,17 @@ llvm::DIType *CGDebugInfo::getOrCreateVTablePtrType(llvm::DIFile *Unit) {
   llvm::DITypeRefArray SElements = DBuilder.getOrCreateTypeArray(STy);
   llvm::DIType *SubTy = DBuilder.createSubroutineType(SElements);
   unsigned Size = Context.getTypeSize(Context.VoidPtrTy);
+#if LLVM_VERSION_MAJOR > 4
+  unsigned VtblPtrAddressSpace = CGM.getTarget().getVtblPtrAddressSpace();
+  Optional<unsigned> DWARFAddressSpace =
+      CGM.getTarget().getDWARFAddressSpace(VtblPtrAddressSpace);
+#endif
   llvm::DIType *vtbl_ptr_type =
-      DBuilder.createPointerType(SubTy, Size, 0, "__vtbl_ptr_type");
+      DBuilder.createPointerType(SubTy, Size, 0,
+#if LLVM_VERSION_MAJOR > 4
+                                 DWARFAddressSpace,
+#endif
+                                 "__vtbl_ptr_type");
   VTablePtrType = DBuilder.createPointerType(vtbl_ptr_type, Size);
   return VTablePtrType;
 }
@@ -1648,10 +1657,19 @@ void CGDebugInfo::CollectVTableInfo(const CXXRecordDecl *RD, llvm::DIFile *Unit,
     unsigned VSlotCount =
         VFTLayout.vtable_components().size() - CGM.getLangOpts().RTTIData;
     unsigned VTableWidth = PtrWidth * VSlotCount;
+#if LLVM_VERSION_MAJOR > 4
+    unsigned VtblPtrAddressSpace = CGM.getTarget().getVtblPtrAddressSpace();
+    Optional<unsigned> DWARFAddressSpace =
+        CGM.getTarget().getDWARFAddressSpace(VtblPtrAddressSpace);
+#endif
 
     // Create a very wide void* type and insert it directly in the element list.
     llvm::DIType *VTableType =
-        DBuilder.createPointerType(nullptr, VTableWidth, 0, "__vtbl_ptr_type");
+        DBuilder.createPointerType(nullptr, VTableWidth, 0,
+#if LLVM_VERSION_MAJOR > 4
+                                   DWARFAddressSpace,
+#endif
+                                   "__vtbl_ptr_type");
     EltTys.push_back(VTableType);
 
     // The vptr is a pointer to this special vtable type.
@@ -3659,7 +3677,11 @@ void CGDebugInfo::EmitDeclareOfBlockLiteralArgVariable(const CGBlockInfo &block,
   if (LocalAddr) {
     // Insert an llvm.dbg.value into the current block.
     DBuilder.insertDbgValueIntrinsic(
-        LocalAddr, 0, debugVar, DBuilder.createExpression(),
+        LocalAddr,
+#if LLVM_VERSION_MAJOR < 6
+        0,
+#endif
+        debugVar, DBuilder.createExpression(),
         llvm::DebugLoc::get(line, column, scope), Builder.GetInsertBlock());
   }
 
@@ -3826,9 +3848,15 @@ void CGDebugInfo::EmitUsingDirective(const UsingDirectiveDecl &UD) {
   const NamespaceDecl *NSDecl = UD.getNominatedNamespace();
   if (!NSDecl->isAnonymousNamespace() ||
       CGM.getCodeGenOpts().DebugExplicitImport) {
+#if LLVM_VERSION_MAJOR > 4
+    auto Loc = UD.getLocation();
+#endif
     DBuilder.createImportedModule(
         getCurrentContextDescriptor(cast<Decl>(UD.getDeclContext())),
         getOrCreateNameSpace(NSDecl),
+#if LLVM_VERSION_MAJOR > 4
+        getOrCreateFile(Loc),
+#endif
         getLineNumber(UD.getLocation()));
   }
 }
@@ -3852,10 +3880,17 @@ void CGDebugInfo::EmitUsingDecl(const UsingDecl &UD) {
       if (AT->getDeducedType().isNull())
         return;
   if (llvm::DINode *Target =
-          getDeclarationOrDefinition(USD.getUnderlyingDecl()))
+          getDeclarationOrDefinition(USD.getUnderlyingDecl())) {
+#if LLVM_VERSION_MAJOR > 4
+    auto Loc = USD.getLocation();
+#endif
     DBuilder.createImportedDeclaration(
         getCurrentContextDescriptor(cast<Decl>(USD.getDeclContext())), Target,
+#if LLVM_VERSION_MAJOR > 4
+        getOrCreateFile(Loc),
+#endif
         getLineNumber(USD.getLocation()));
+  }
 }
 
 void CGDebugInfo::EmitImportDecl(const ImportDecl &ID) {
@@ -3863,9 +3898,15 @@ void CGDebugInfo::EmitImportDecl(const ImportDecl &ID) {
     return;
   if (Module *M = ID.getImportedModule()) {
     auto Info = ExternalASTSource::ASTSourceDescriptor(*M);
+#if LLVM_VERSION_MAJOR > 4
+    auto Loc = ID.getLocation();
+#endif
     DBuilder.createImportedDeclaration(
         getCurrentContextDescriptor(cast<Decl>(ID.getDeclContext())),
         getOrCreateModuleRef(Info, DebugTypeExtRefs),
+#if LLVM_VERSION_MAJOR > 4
+        getOrCreateFile(Loc),
+#endif
         getLineNumber(ID.getLocation()));
   }
 }
@@ -3878,18 +3919,26 @@ CGDebugInfo::EmitNamespaceAlias(const NamespaceAliasDecl &NA) {
   if (VH)
     return cast<llvm::DIImportedEntity>(VH);
   llvm::DIImportedEntity *R;
+  auto Loc = NA.getLocation();
   if (const auto *Underlying =
           dyn_cast<NamespaceAliasDecl>(NA.getAliasedNamespace()))
     // This could cache & dedup here rather than relying on metadata deduping.
     R = DBuilder.createImportedDeclaration(
         getCurrentContextDescriptor(cast<Decl>(NA.getDeclContext())),
-        EmitNamespaceAlias(*Underlying), getLineNumber(NA.getLocation()),
+        EmitNamespaceAlias(*Underlying),
+#if LLVM_VERSION_MAJOR > 4
+        getOrCreateFile(Loc),
+#endif
+        getLineNumber(Loc),
         NA.getName());
   else
     R = DBuilder.createImportedDeclaration(
         getCurrentContextDescriptor(cast<Decl>(NA.getDeclContext())),
         getOrCreateNameSpace(cast<NamespaceDecl>(NA.getAliasedNamespace())),
-        getLineNumber(NA.getLocation()), NA.getName());
+#if LLVM_VERSION_MAJOR > 4
+        getOrCreateFile(Loc),
+#endif
+        getLineNumber(Loc), NA.getName());
   VH.reset(R);
   return R;
 }
@@ -3905,7 +3954,11 @@ CGDebugInfo::getOrCreateNameSpace(const NamespaceDecl *NSDecl) {
   llvm::DIFile *FileD = getOrCreateFile(NSDecl->getLocation());
   llvm::DIScope *Context = getDeclContextDescriptor(NSDecl);
   llvm::DINamespace *NS = DBuilder.createNameSpace(
-      Context, NSDecl->getName(), FileD, LineNo, NSDecl->isInline());
+      Context, NSDecl->getName(),
+#if LLVM_VERSION_MAJOR < 5
+      FileD, LineNo,
+#endif
+      NSDecl->isInline());
   NameSpaceCache[NSDecl].reset(NS);
   return NS;
 }

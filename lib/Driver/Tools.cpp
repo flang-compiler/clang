@@ -14,6 +14,7 @@
 #include "clang/Basic/LangOptions.h"
 #include "clang/Basic/ObjCRuntime.h"
 #include "clang/Basic/Version.h"
+#include "clang/Basic/TargetInfo.h"
 #include "clang/Config/config.h"
 #include "clang/Driver/Action.h"
 #include "clang/Driver/Compilation.h"
@@ -835,8 +836,8 @@ static int getARMSubArchVersionNumber(const llvm::Triple &Triple) {
 // True if M-profile.
 static bool isARMMProfile(const llvm::Triple &Triple) {
   llvm::StringRef Arch = Triple.getArchName();
-  unsigned Profile = llvm::ARM::parseArchProfile(Arch);
-  return Profile == llvm::ARM::PK_M;
+  MigARMProfileKindTy Profile = llvm::ARM::parseArchProfile(Arch);
+  return Profile == MigARMProfileKindEnumM;
 }
 
 // Get Arch/CPU from args.
@@ -904,7 +905,7 @@ static void checkARMArchName(const Driver &D, const Arg *A, const ArgList &Args,
   std::pair<StringRef, StringRef> Split = ArchName.split("+");
 
   std::string MArch = arm::getARMArch(ArchName, Triple);
-  if (llvm::ARM::parseArch(MArch) == llvm::ARM::AK_INVALID ||
+  if (llvm::ARM::parseArch(MArch) == MigARMArchKindINVALID ||
       (Split.second.size() && !DecodeARMFeatures(D, Split.second, Features)))
     D.Diag(diag::err_drv_clang_unsupported) << A->getAsString(Args);
 }
@@ -1185,7 +1186,13 @@ static void getARMTargetFeatures(const ToolChain &TC,
   if (Arg *A = Args.getLastArg(options::OPT_mexecute_only, options::OPT_mno_execute_only)) {
     if (A->getOption().matches(options::OPT_mexecute_only)) {
       if (getARMSubArchVersionNumber(Triple) < 7 &&
-          llvm::ARM::parseArch(Triple.getArchName()) != llvm::ARM::AK_ARMV6T2)
+          llvm::ARM::parseArch(Triple.getArchName()) !=
+#if LLVM_VERSION_MAJOR > 4
+          llvm::ARM::ArchKind::ARMV6T2
+#else
+          llvm::ARM::AK_ARMV6T2
+#endif
+          )
             D.Diag(diag::err_target_unsupported_execute_only) << Triple.getArchName();
       else if (Arg *B = Args.getLastArg(options::OPT_mno_movt))
         D.Diag(diag::err_opt_not_valid_with_opt) << A->getAsString(Args) << B->getAsString(Args);
@@ -2084,8 +2091,10 @@ static const char *getX86TargetCPU(const ArgList &Args,
     return "i486";
   case llvm::Triple::Haiku:
     return "i586";
+#if LLVM_VERSION_MAJOR < 6
   case llvm::Triple::Bitrig:
     return "i686";
+#endif
   default:
     // Fallback to p4.
     return "pentium4";
@@ -2605,7 +2614,7 @@ static bool DecodeAArch64Mcpu(const Driver &D, StringRef Mcpu, StringRef &CPU,
   if (CPU == "generic") {
     Features.push_back("+neon");
   } else {
-    unsigned ArchKind = llvm::AArch64::parseCPUArch(CPU);
+    MigAArch64ArchKindTy ArchKind = llvm::AArch64::parseCPUArch(CPU);
     if (!llvm::AArch64::getArchFeatures(ArchKind, Features))
       return false;
 
@@ -2627,8 +2636,14 @@ getAArch64ArchFeaturesFromMarch(const Driver &D, StringRef March,
   std::string MarchLowerCase = March.lower();
   std::pair<StringRef, StringRef> Split = StringRef(MarchLowerCase).split("+");
 
-  unsigned ArchKind = llvm::AArch64::parseArch(Split.first);
-  if (ArchKind == static_cast<unsigned>(llvm::AArch64::ArchKind::AK_INVALID) ||
+  MigAArch64ArchKindTy ArchKind = llvm::AArch64::parseArch(Split.first);
+  if (ArchKind == static_cast<MigAArch64ArchKindTy>(
+#if LLVM_VERSION_MAJOR > 4
+              llvm::AArch64::ArchKind::INVALID
+#else
+              llvm::AArch64::ArchKind::AK_INVALID
+#endif
+              ) ||
       !llvm::AArch64::getArchFeatures(ArchKind, Features) ||
       (Split.second.size() && !DecodeAArch64Features(D, Split.second, Features)))
     return false;
@@ -8710,11 +8725,11 @@ std::string arm::getARMTargetCPU(StringRef CPU, StringRef Arch,
 // FIXME: This is redundant with -mcpu, why does LLVM use this.
 StringRef arm::getLLVMArchSuffixForARM(StringRef CPU, StringRef Arch,
                                        const llvm::Triple &Triple) {
-  unsigned ArchKind;
+  MigARMArchKindTy ArchKind;
   if (CPU == "generic") {
     std::string ARMArch = tools::arm::getARMArch(Arch, Triple);
     ArchKind = llvm::ARM::parseArch(ARMArch);
-    if (ArchKind == llvm::ARM::AK_INVALID)
+    if (ArchKind == MigARMArchKindINVALID)
       // In case of generic Arch, i.e. "arm",
       // extract arch from default cpu of the Triple
       ArchKind = llvm::ARM::parseCPUArch(Triple.getARMCPUForArch(ARMArch));
@@ -8722,10 +8737,15 @@ StringRef arm::getLLVMArchSuffixForARM(StringRef CPU, StringRef Arch,
     // FIXME: horrible hack to get around the fact that Cortex-A7 is only an
     // armv7k triple if it's actually been specified via "-arch armv7k".
     ArchKind = (Arch == "armv7k" || Arch == "thumbv7k")
-                          ? (unsigned)llvm::ARM::AK_ARMV7K
+                          ? (MigARMArchKindTy)
+#if LLVM_VERSION_MAJOR > 4
+                          llvm::ARM::ArchKind::ARMV7K
+#else
+                          llvm::ARM::AK_ARMV7K
+#endif
                           : llvm::ARM::parseCPUArch(CPU);
   }
-  if (ArchKind == llvm::ARM::AK_INVALID)
+  if (ArchKind == MigARMArchKindINVALID)
     return "";
   return llvm::ARM::getSubArch(ArchKind);
 }
@@ -8880,14 +8900,14 @@ llvm::Triple::ArchType darwin::getArchTypeForMachOArchName(StringRef Str) {
 
 void darwin::setTripleTypeForMachOArchName(llvm::Triple &T, StringRef Str) {
   const llvm::Triple::ArchType Arch = getArchTypeForMachOArchName(Str);
-  unsigned ArchKind = llvm::ARM::parseArch(Str);
+  MigARMArchKindTy ArchKind = llvm::ARM::parseArch(Str);
   T.setArch(Arch);
 
   if (Str == "x86_64h")
     T.setArchName(Str);
-  else if (ArchKind == llvm::ARM::AK_ARMV6M ||
-           ArchKind == llvm::ARM::AK_ARMV7M ||
-           ArchKind == llvm::ARM::AK_ARMV7EM) {
+  else if (ArchKind == MigARMArchKindARMV6M ||
+           ArchKind == MigARMArchKindARMV7M ||
+           ArchKind == MigARMArchKindARMV7EM) {
     T.setOS(llvm::Triple::UnknownOS);
     T.setObjectFormat(llvm::Triple::MachO);
   }

@@ -514,7 +514,9 @@ public:
     // Dump the contents of the temporary file if that was requested.
     if (DumpTemporaryFiles) {
       errs() << ";\n; Object file bundler IR file.\n;\n";
+#if LLVM_VERSION_MAJOR < 5
       AuxModule.get()->dump();
+#endif
     }
 
     // Find clang in order to create the bundle binary.
@@ -912,8 +914,12 @@ static bool UnbundleFiles() {
   return false;
 }
 
+#if LLVM_VERSION_MAJOR > 5
+static void PrintVersion(raw_ostream &OS) {
+#else
 static void PrintVersion() {
   raw_ostream &OS = outs();
+#endif
   OS << clang::getClangToolFullVersion("clang-offload-bundler") << '\n';
 }
 

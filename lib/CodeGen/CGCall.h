@@ -26,6 +26,9 @@
 
 namespace llvm {
   class AttributeSet;
+#if LLVM_VERSION_MAJOR > 4
+  class AttributeList;
+#endif
   class Function;
   class Type;
   class Value;
@@ -39,7 +42,11 @@ namespace clang {
   class VarDecl;
 
 namespace CodeGen {
+#if LLVM_VERSION_MAJOR > 4
+  typedef SmallVector<llvm::AttributeList, 8> AttributeListType;
+#else
   typedef SmallVector<llvm::AttributeSet, 8> AttributeListType;
+#endif
 
   /// Abstract information about a function or function prototype.
   class CGCalleeInfo {

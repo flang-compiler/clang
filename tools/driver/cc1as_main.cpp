@@ -88,7 +88,12 @@ struct AssemblerInvocation {
   unsigned NoInitialTextSection : 1;
   unsigned SaveTemporaryLabels : 1;
   unsigned GenDwarfForAssembly : 1;
+#if LLVM_VERSION_MAJOR > 4
+  llvm::DebugCompressionType CompressDebugSections =
+      llvm::DebugCompressionType::None;
+#else
   unsigned CompressDebugSections : 1;
+#endif
   unsigned RelaxELFRelocations : 1;
   unsigned DwarfVersion;
   std::string DwarfDebugFlags;
@@ -201,7 +206,23 @@ bool AssemblerInvocation::CreateFromArgs(AssemblerInvocation &Opts,
   Opts.SaveTemporaryLabels = Args.hasArg(OPT_msave_temp_labels);
   // Any DebugInfoKind implies GenDwarfForAssembly.
   Opts.GenDwarfForAssembly = Args.hasArg(OPT_debug_info_kind_EQ);
+#if LLVM_VERSION_MAJOR > 4
+  if (const Arg *A = Args.getLastArg(OPT_compress_debug_sections,
+                                     OPT_compress_debug_sections_EQ)) {
+    if (A->getOption().getID() == OPT_compress_debug_sections) {
+      Opts.CompressDebugSections = llvm::DebugCompressionType::GNU;
+    } else {
+      Opts.CompressDebugSections =
+          llvm::StringSwitch<llvm::DebugCompressionType>(A->getValue())
+              .Case("none", llvm::DebugCompressionType::None)
+              .Case("zlib", llvm::DebugCompressionType::Z)
+              .Case("zlib-gnu", llvm::DebugCompressionType::GNU)
+              .Default(llvm::DebugCompressionType::None);
+    }
+  }
+#else
   Opts.CompressDebugSections = Args.hasArg(OPT_compress_debug_sections);
+#endif
   Opts.RelaxELFRelocations = Args.hasArg(OPT_mrelax_relocations);
   Opts.DwarfVersion = getLastArgIntValue(Args, OPT_dwarf_version_EQ, 2, Diags);
   Opts.DwarfDebugFlags = Args.getLastArgValue(OPT_dwarf_debug_flags);
@@ -212,6 +233,17 @@ bool AssemblerInvocation::CreateFromArgs(AssemblerInvocation &Opts,
   // Frontend Options
   if (Args.hasArg(OPT_INPUT)) {
     bool First = true;
+#if LLVM_VERSION_MAJOR > 4
+    for (const Arg *A : Args.filtered(OPT_INPUT)) {
+      if (First) {
+        Opts.InputFile = A->getValue();
+        First = false;
+      } else {
+        Diags.Report(diag::err_drv_unknown_argument) << A->getAsString(Args);
+        Success = false;
+      }
+    }
+#else
     for (arg_iterator it = Args.filtered_begin(OPT_INPUT),
                       ie = Args.filtered_end();
          it != ie; ++it, First = false) {
@@ -223,6 +255,7 @@ bool AssemblerInvocation::CreateFromArgs(AssemblerInvocation &Opts,
         Success = false;
       }
     }
+#endif
   }
   Opts.LLVMArgs = Args.getAllArgValues(OPT_mllvm);
   Opts.OutputPath = Args.getLastArgValue(OPT_o);
@@ -316,8 +349,12 @@ static bool ExecuteAssembler(AssemblerInvocation &Opts,
 
   // Ensure MCAsmInfo initialization occurs before any use, otherwise sections
   // may be created with a combination of default and explicit settings.
+#if LLVM_VERSION_MAJOR > 4
+    MAI->setCompressDebugSections(Opts.CompressDebugSections);
+#else
   if (Opts.CompressDebugSections)
     MAI->setCompressDebugSections(DebugCompressionType::DCT_ZlibGnu);
+#endif
 
   MAI->setRelaxELFRelocations(Opts.RelaxELFRelocations);
 
@@ -343,7 +380,11 @@ static bool ExecuteAssembler(AssemblerInvocation &Opts,
     PIC = false;
   }
 
-  MOFI->InitMCObjectFileInfo(Triple(Opts.Triple), PIC, CodeModel::Default, Ctx);
+  MOFI->InitMCObjectFileInfo(Triple(Opts.Triple), PIC,
+#if LLVM_VERSION_MAJOR < 6
+                             CodeModel::Default,
+#endif
+                             Ctx);
   if (Opts.SaveTemporaryLabels)
     Ctx.setAllowTemporaryLabels(false);
   if (Opts.GenDwarfForAssembly)

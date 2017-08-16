@@ -231,7 +231,7 @@ static llvm::Constant *getPersonalityFn(CodeGenModule &CGM,
                                         const EHPersonality &Personality) {
   return CGM.CreateRuntimeFunction(llvm::FunctionType::get(CGM.Int32Ty, true),
                                    Personality.PersonalityFn,
-                                   llvm::AttributeSet(), /*Local=*/true);
+                                   MigAttributeList(), /*Local=*/true);
 }
 
 static llvm::Constant *getOpaquePersonalityFn(CodeGenModule &CGM,
@@ -766,7 +766,11 @@ llvm::BasicBlock *CodeGenFunction::EmitLandingPad() {
   EmitBlock(lpad);
 
   llvm::LandingPadInst *LPadInst = Builder.CreateLandingPad(
-      llvm::StructType::get(Int8PtrTy, Int32Ty, nullptr), 0);
+      llvm::StructType::get(Int8PtrTy, Int32Ty
+#if LLVM_VERSION_MAJOR < 5
+          , nullptr
+#endif
+          ), 0);
 
   llvm::Value *LPadExn = Builder.CreateExtractValue(LPadInst, 0);
   Builder.CreateStore(LPadExn, getExceptionSlot());
@@ -1311,7 +1315,11 @@ llvm::BasicBlock *CodeGenFunction::getTerminateLandingPad() {
     CurFn->setPersonalityFn(getOpaquePersonalityFn(CGM, Personality));
 
   llvm::LandingPadInst *LPadInst = Builder.CreateLandingPad(
-      llvm::StructType::get(Int8PtrTy, Int32Ty, nullptr), 0);
+      llvm::StructType::get(Int8PtrTy, Int32Ty
+#if LLVM_VERSION_MAJOR < 5
+          , nullptr
+#endif
+          ), 0);
   LPadInst->addClause(getCatchAllValue(*this));
 
   llvm::Value *Exn = nullptr;
@@ -1388,7 +1396,11 @@ llvm::BasicBlock *CodeGenFunction::getEHResumeBlock(bool isCleanup) {
   llvm::Value *Sel = getSelectorFromSlot();
 
   llvm::Type *LPadType = llvm::StructType::get(Exn->getType(),
-                                               Sel->getType(), nullptr);
+                                               Sel->getType()
+#if LLVM_VERSION_MAJOR < 5
+                                               , nullptr
+#endif
+                                               );
   llvm::Value *LPadVal = llvm::UndefValue::get(LPadType);
   LPadVal = Builder.CreateInsertValue(LPadVal, Exn, 0, "lpad.val");
   LPadVal = Builder.CreateInsertValue(LPadVal, Sel, 1, "lpad.val");
@@ -1758,7 +1770,11 @@ void CodeGenFunction::EmitSEHExceptionCodeSave(CodeGenFunction &ParentCGF,
   // };
   // int exceptioncode = exception_pointers->ExceptionRecord->ExceptionCode;
   llvm::Type *RecordTy = CGM.Int32Ty->getPointerTo();
-  llvm::Type *PtrsTy = llvm::StructType::get(RecordTy, CGM.VoidPtrTy, nullptr);
+  llvm::Type *PtrsTy = llvm::StructType::get(RecordTy, CGM.VoidPtrTy
+#if LLVM_VERSION_MAJOR < 5    
+          , nullptr
+#endif
+          );
   llvm::Value *Ptrs = Builder.CreateBitCast(SEHInfo, PtrsTy->getPointerTo());
   llvm::Value *Rec = Builder.CreateStructGEP(PtrsTy, Ptrs, 0);
   Rec = Builder.CreateAlignedLoad(Rec, getPointerAlign());
