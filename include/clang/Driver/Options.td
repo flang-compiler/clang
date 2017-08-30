@@ -2482,7 +2482,6 @@ def mp: Flag<["-"], "mp">, Group<pgi_fortran_Group>,
   HelpText<"Enable OpenMP">;
 def nomp: Flag<["-"], "nomp">, Group<pgi_fortran_Group>,
   HelpText<"Do not link with OpenMP library libomp">;
-def pgf90libs: Flag<["-"], "pgf90libs">, Group<pgi_fortran_Group>;
 def Mflushz_on: Flag<["-"], "Mflushz">, Group<pgi_fortran_Group>,
   HelpText<"Set SSE to flush-to-zero mode">;
 def Mflushz_off: Flag<["-"], "Mnoflushz">, Group<pgi_fortran_Group>,
