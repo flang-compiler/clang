@@ -29,7 +29,7 @@ public:
                             llvm::opt::ArgStringList &CC1Args) const override;
   void
   AddFlangSystemIncludeArgs(const llvm::opt::ArgList &DriverArgs,
-                            llvm::opt::ArgStringList &CC1Args) const override;
+                            llvm::opt::ArgStringList &Flang1Args) const override;
   std::string findLibCxxIncludePath() const override;
   void addLibStdCxxIncludePaths(
       const llvm::opt::ArgList &DriverArgs,

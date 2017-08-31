@@ -187,7 +187,7 @@ void tools::AddLinkerInputs(const ToolChain &TC, const InputInfoList &Inputs,
       }
       SeenFirstLinkerInput = true;
     }
-    
+
     // Otherwise, this is a linker input argument.
     const Arg &A = II.getInputArg();
 
