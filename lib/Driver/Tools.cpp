@@ -4124,6 +4124,8 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   ArgStringList CommonCmdArgs;
   ArgStringList UpperCmdArgs;
   ArgStringList LowerCmdArgs;
+  SmallString<256> Stem;
+  std::string OutFile;
   bool NeedIEEE = true;
 
   // Check number of inputs for sanity. We need at least one input.
@@ -4135,8 +4137,14 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   // Check file type sanity
   assert(types::isFortran(InputType) && "Can only accept Fortran");
 
-  std::string OutFile = Output.getFilename();
-  std::string Stem = OutFile.substr(0, OutFile.length()-3); // Strip ".ll"
+  if (Args.hasArg(options::OPT_fsyntax_only)) {
+    // For -fsyntax-only produce temp files only
+    Stem = C.getDriver().GetTemporaryPath("", "");
+  } else {
+    OutFile = Output.getFilename();
+    Stem = llvm::sys::path::filename(OutFile);
+    llvm::sys::path::replace_extension(Stem, "");
+  }
 
   // Add input file name to the compilation line
   UpperCmdArgs.push_back(Input.getBaseInput());
@@ -4857,6 +4865,9 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   UpperCmdArgs.push_back(ILMFile);
 
   C.addCommand(llvm::make_unique<Command>(JA, *this, UpperExec, UpperCmdArgs, Inputs));
+
+  // For -fsyntax-only that is it
+  if (Args.hasArg(options::OPT_fsyntax_only)) return;
 
   /***** Lower part of Fortran frontend *****/
 
