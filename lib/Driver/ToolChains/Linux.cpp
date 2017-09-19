@@ -540,7 +540,7 @@ std::string Linux::getDynamicLinker(const ArgList &Args) const {
 
 /// Convert path list to Fortran frontend argument
 static void AddFlangSysIncludeArg(const ArgList &DriverArgs,
-                                  ArgStringList &F901Args,
+                                  ArgStringList &Flang1Args,
                                   ToolChain::path_list IncludePathList) {
   std::string ArgValue; // Path argument value
 
@@ -556,12 +556,12 @@ static void AddFlangSysIncludeArg(const ArgList &DriverArgs,
   }
 
   // Add the argument
-  F901Args.push_back("-stdinc");
-  F901Args.push_back(DriverArgs.MakeArgString(ArgValue));
+  Flang1Args.push_back("-stdinc");
+  Flang1Args.push_back(DriverArgs.MakeArgString(ArgValue));
 }
 
 void Linux::AddFlangSystemIncludeArgs(const ArgList &DriverArgs,
-                                      ArgStringList &F901Args) const {
+                                      ArgStringList &Flang1Args) const {
   path_list IncludePathList;
   const Driver &D = getDriver();
   std::string SysRoot = computeSysRoot();
@@ -585,7 +585,7 @@ void Linux::AddFlangSystemIncludeArgs(const ArgList &DriverArgs,
   }
 
   if (DriverArgs.hasArg(options::OPT_nostdlibinc)) {
-    AddFlangSysIncludeArg(DriverArgs, F901Args, IncludePathList);
+    AddFlangSysIncludeArg(DriverArgs, Flang1Args, IncludePathList);
     return;
   }
 
@@ -599,7 +599,7 @@ void Linux::AddFlangSystemIncludeArgs(const ArgList &DriverArgs,
           llvm::sys::path::is_absolute(dir) ? StringRef(SysRoot) : "";
       IncludePathList.push_back(Prefix.str() + dir.str());
     }
-    AddFlangSysIncludeArg(DriverArgs, F901Args, IncludePathList);
+    AddFlangSysIncludeArg(DriverArgs, Flang1Args, IncludePathList);
     return;
   }
 
@@ -612,7 +612,7 @@ void Linux::AddFlangSystemIncludeArgs(const ArgList &DriverArgs,
     if (Callback) {
       for (const auto &Path : Callback(GCCInstallation.getMultilib()))
         addExternCSystemIncludeIfExists(
-            DriverArgs, F901Args, GCCInstallation.getInstallPath() + Path);
+            DriverArgs, Flang1Args, GCCInstallation.getInstallPath() + Path);
     }
   }
 
@@ -712,7 +712,7 @@ void Linux::AddFlangSystemIncludeArgs(const ArgList &DriverArgs,
   }
 
   if (getTriple().getOS() == llvm::Triple::RTEMS) {
-    AddFlangSysIncludeArg(DriverArgs, F901Args, IncludePathList);
+    AddFlangSysIncludeArg(DriverArgs, Flang1Args, IncludePathList);
     return;
   }
 
@@ -723,7 +723,7 @@ void Linux::AddFlangSystemIncludeArgs(const ArgList &DriverArgs,
 
   IncludePathList.push_back(SysRoot + "/usr/include");
 
-  AddFlangSysIncludeArg(DriverArgs, F901Args, IncludePathList);
+  AddFlangSysIncludeArg(DriverArgs, Flang1Args, IncludePathList);
 }
 
 void Linux::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
