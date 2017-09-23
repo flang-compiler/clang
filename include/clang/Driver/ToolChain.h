@@ -400,13 +400,13 @@ public:
   AddClangSystemIncludeArgs(const llvm::opt::ArgList &DriverArgs,
                             llvm::opt::ArgStringList &CC1Args) const;
 
-  /// \brief Add the pgf901-llvm arguments for system include paths.
+  /// \brief Add the flang1 arguments for system include paths.
   ///
   /// This routine is responsible for adding the -stdinc argument to
   /// include headers and module files from standard system header directories.
   virtual void
   AddFlangSystemIncludeArgs(const llvm::opt::ArgList &DriverArgs,
-                            llvm::opt::ArgStringList &F901Args) const { }
+                            llvm::opt::ArgStringList &Flang1args) const { }
 
   /// \brief Add options that need to be passed to cc1 for this target.
   virtual void addClangTargetOptions(const llvm::opt::ArgList &DriverArgs,
