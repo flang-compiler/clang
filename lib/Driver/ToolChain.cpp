@@ -668,6 +668,9 @@ void ToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
  bool staticFlangLibs = false;
  bool useOpenMP = false;
 
+  const llvm::Triple &Triple = getTriple();
+  bool IsWindows = Triple.isWindowsMSVCEnvironment();
+
   if (Args.hasArg(options::OPT_staticFlangLibs)) {
     for (auto *A: Args.filtered(options::OPT_staticFlangLibs)) {
       A->claim();
@@ -682,7 +685,31 @@ void ToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
        A->getOption().matches(options::OPT_fopenmp))) {
       useOpenMP = true;
   }
+  if (IsWindows) {
+    CmdArgs.push_back(Args.MakeArgString(std::string("-libpath:") +
+                                        D.Dir + "/../lib"));
 
+    if (staticFlangLibs) {
+      CmdArgs.push_back("-defaultlib:libflang");
+      CmdArgs.push_back("-defaultlib:libflangrti");
+      if( useOpenMP ) {
+        CmdArgs.push_back("-defaultlib:libomp");
+      }
+      else {
+        CmdArgs.push_back("-defaultlib:libompstub");
+      }
+    } else {
+      CmdArgs.push_back("-defaultlib:flang");
+      CmdArgs.push_back("-defaultlib:flangrti");
+      if( useOpenMP ) {
+        CmdArgs.push_back("-defaultlib:omp");
+      }
+      else {
+        CmdArgs.push_back("-defaultlib:ompstub");
+      }
+	}
+    return;
+  }
   if (staticFlangLibs) {
     CmdArgs.push_back("-Bstatic");
   }

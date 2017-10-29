@@ -11693,6 +11693,7 @@ void visualstudio::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                                         const char *LinkingOutput) const {
   ArgStringList CmdArgs;
   const ToolChain &TC = getToolChain();
+  const Driver &D = TC.getDriver();
 
   assert((Output.isFilename() || Output.isNothing()) && "invalid output");
   if (Output.isFilename())
@@ -11781,6 +11782,19 @@ void visualstudio::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     } else {
       for (const auto &Lib : {"asan", "asan_cxx"})
         CmdArgs.push_back(TC.getCompilerRTArgString(Args, Lib));
+    }
+  }
+  if (needFortranMain(D, Args)) {
+	CmdArgs.push_back("-subsystem:console");
+	CmdArgs.push_back("-defaultlib:flangmain");
+  }
+  // Add Fortran runtime libraries
+  if (needFortranLibs(D, Args)) {
+    TC.AddFortranStdlibLibArgs(Args, CmdArgs);
+  } else {
+  // Claim "no Flang libraries" arguments if any
+    for (auto Arg : Args.filtered(options::OPT_noFlangLibs)) {
+      Arg->claim();
     }
   }
 
