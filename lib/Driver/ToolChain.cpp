@@ -701,6 +701,7 @@ void ToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
     } else {
       CmdArgs.push_back("-defaultlib:flang");
       CmdArgs.push_back("-defaultlib:flangrti");
+      CmdArgs.push_back("-defaultlib:Dbghelp");
       if( useOpenMP ) {
         CmdArgs.push_back("-defaultlib:omp");
       }
