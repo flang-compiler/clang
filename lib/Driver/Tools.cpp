@@ -11717,9 +11717,13 @@ void visualstudio::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back(
         Args.MakeArgString(std::string("-out:") + Output.getFilename()));
 
-  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles) &&
-      !C.getDriver().IsCLMode())
-    CmdArgs.push_back("-defaultlib:libcmt");
+  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles)) {
+    if (C.getDriver().IsFortranMode()) {
+      CmdArgs.push_back("-defaultlib:msvcrt");
+    } else if (!C.getDriver().IsCLMode() && !C.getDriver().IsFortranMode()) {
+      CmdArgs.push_back("-defaultlib:libcmt");
+    }
+  }
 
   if (!llvm::sys::Process::GetEnv("LIB")) {
     // If the VC environment hasn't been configured (perhaps because the user
