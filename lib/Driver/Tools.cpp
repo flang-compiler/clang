@@ -4809,6 +4809,10 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     UpperCmdArgs.push_back(Arg->getValue(0));
   }
 
+  // Add env variables
+  addDirectoryList(Args, UpperCmdArgs, "-idir", "C_INCLUDE_PATH");
+  addDirectoryList(Args, UpperCmdArgs, "-idir", "CPATH");
+
   // Add user-defined module directories
   for (auto Arg : Args.filtered(options::OPT_ModuleDir, options::OPT_J)) {
     Arg->claim();
