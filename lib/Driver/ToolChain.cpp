@@ -665,15 +665,8 @@ void ToolChain::AddCCKextLibArgs(const ArgList &Args,
 
 void addMLinkerHelper(const ArgList &Args, ArgStringList &CmdArgs, bool AddMLinker, StringRef Arg) {
   if (AddMLinker) {
-    std::string quoted = "";
-    for (char CharArg: Arg) {
-      if (CharArg == '-')
-        quoted += "\-";
-      else
-        quoted += CharArg;
-    }
     CmdArgs.push_back("-linker");
-    CmdArgs.push_back(Args.MakeArgString(quoted));
+    CmdArgs.push_back(Args.MakeArgString(Arg));
   } else {
     CmdArgs.push_back(Args.MakeArgString(Arg));
   }
