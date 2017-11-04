@@ -470,7 +470,8 @@ public:
   /// AddFortranStdlibLibArgs - Add the system specific linker arguments to use
   /// for the given Fortran runtime library type.
   virtual void AddFortranStdlibLibArgs(const llvm::opt::ArgList &Args,
-                                       llvm::opt::ArgStringList &CmdArgs) const;
+                                       llvm::opt::ArgStringList &CmdArgs,
+                                       bool AddMLinker=false) const;
 
   /// \brief Return sanitizers which are available in this toolchain.
   virtual SanitizerMask getSupportedSanitizers() const;
