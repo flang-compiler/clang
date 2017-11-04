@@ -718,7 +718,6 @@ void ToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
     } else {
       addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flang");
       addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flangrti");
-      addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:Dbghelp");
       if( useOpenMP ) {
         addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:omp");
       }
