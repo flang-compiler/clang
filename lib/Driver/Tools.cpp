@@ -4939,7 +4939,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   LowerCmdArgs.push_back(STBFile);
 
   LowerCmdArgs.push_back("-asm"); LowerCmdArgs.push_back(Args.MakeArgString(OutFile));
-  if (IsWindowsMSVC) {
+  if (IsWindowsMSVC && !Args.hasArg(options::OPT_noFlangLibs)) {
     getToolChain().AddFortranStdlibLibArgs(Args, LowerCmdArgs, true);
     if (needFortranMain(getToolChain().getDriver(), Args)) {
       LowerCmdArgs.push_back("-linker");
@@ -4947,6 +4947,9 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
       LowerCmdArgs.push_back("-linker");
       LowerCmdArgs.push_back("/defaultlib:flangmain");
     }
+  }
+  for (auto Arg : Args.filtered(options::OPT_noFlangLibs)) {
+    Arg->claim();
   }
 
   C.addCommand(llvm::make_unique<Command>(JA, *this, LowerExec, LowerCmdArgs, Inputs));
