@@ -107,7 +107,8 @@ public:
       llvm::opt::ArgStringList &CC1Args) const override;
 
   void AddFortranStdlibLibArgs(const llvm::opt::ArgList &DriverArgs,
-                               llvm::opt::ArgStringList &CC1Args) const override;
+                               llvm::opt::ArgStringList &CC1Args,
+                               bool AddMLinker=false) const override;
 
   void AddCudaIncludeArgs(const llvm::opt::ArgList &DriverArgs,
                           llvm::opt::ArgStringList &CC1Args) const override;
@@ -137,6 +138,11 @@ protected:
   Tool *buildLinker() const override;
   Tool *buildAssembler() const override;
 private:
+  void addLinkerHelper(const llvm::opt::ArgList &Args,
+                       llvm::opt::ArgStringList &CmdArgs,
+                       bool IsLinker,
+                       StringRef Arg) const;
+
   std::string VCToolChainPath;
   ToolsetLayout VSLayout = ToolsetLayout::OlderVS;
   CudaInstallationDetector CudaInstallation;

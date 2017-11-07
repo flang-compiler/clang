@@ -869,8 +869,18 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
 	
   const llvm::Triple &Triple = getToolChain().getEffectiveTriple();
   const std::string &TripleStr = Triple.getTriple();
-  CmdArgs.push_back("-target");
-  CmdArgs.push_back(Args.MakeArgString(TripleStr));
+  LowerCmdArgs.push_back("-target");
+  LowerCmdArgs.push_back(Args.MakeArgString(TripleStr));
+	
+  if (IsWindowsMSVC) {
+    getToolChain().AddFortranStdlibLibArgs(Args, LowerCmdArgs, true);
+    if (needFortranMain(getToolChain().getDriver(), Args)) {
+      LowerCmdArgs.push_back("-linker");
+      LowerCmdArgs.push_back("/subsystem:console");
+      LowerCmdArgs.push_back("-linker");
+      LowerCmdArgs.push_back("/defaultlib:flangmain");
+    }
+  }
 
   C.addCommand(llvm::make_unique<Command>(JA, *this, LowerExec, LowerCmdArgs, Inputs));
 }
