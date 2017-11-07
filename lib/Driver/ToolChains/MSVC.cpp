@@ -1280,7 +1280,7 @@ void MSVCToolChain::addLinkerHelper(const ArgList &Args, ArgStringList &CmdArgs,
 
 void MSVCToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
                                             ArgStringList &CmdArgs,
-                                            bool AddMLinker) const {
+                                            bool AddMLinker=false) const {
   bool staticFlangLibs = false;
   bool useOpenMP = false;
 
