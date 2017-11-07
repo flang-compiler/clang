@@ -138,8 +138,8 @@ protected:
   Tool *buildLinker() const override;
   Tool *buildAssembler() const override;
 private:
-  void addLinkerHelper(const ArgList &Args,
-                       ArgStringList &CmdArgs,
+  void addLinkerHelper(const llvm::opt::ArgList &Args,
+                       llvm::opt::ArgStringList &CmdArgs,
                        bool IsLinker,
                        StringRef Arg);
 
