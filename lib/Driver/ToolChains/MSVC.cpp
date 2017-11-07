@@ -1269,8 +1269,11 @@ void MSVCToolChain::AddClangCXXStdlibIncludeArgs(const ArgList &DriverArgs,
   // FIXME: There should probably be logic here to find libc++ on Windows.
 }
 
-void MSVCToolChain::addLinkerHelper(const ArgList &Args, ArgStringList &CmdArgs, bool IsLinker, StringRef Arg) {
-  if (AddMLinker) {
+void MSVCToolChain::addLinkerHelper(const ArgList &Args,
+                                    ArgStringList &CmdArgs,
+                                    bool IsLinker,
+                                    StringRef Arg) const {
+  if (IsLinker) {
     CmdArgs.push_back("-linker");
     CmdArgs.push_back(Args.MakeArgString(Arg));
   } else {
