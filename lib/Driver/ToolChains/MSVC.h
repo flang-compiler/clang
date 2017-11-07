@@ -107,7 +107,8 @@ public:
       llvm::opt::ArgStringList &CC1Args) const override;
 
   void AddFortranStdlibLibArgs(const llvm::opt::ArgList &DriverArgs,
-                               llvm::opt::ArgStringList &CC1Args) const override;
+                               llvm::opt::ArgStringList &CC1Args,
+                               bool AddMLinker=false) const override;
 
   void AddCudaIncludeArgs(const llvm::opt::ArgList &DriverArgs,
                           llvm::opt::ArgStringList &CC1Args) const override;
