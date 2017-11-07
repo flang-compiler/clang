@@ -372,6 +372,16 @@ void visualstudio::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back(Args.MakeArgString(std::string("-implib:") + ImplibName));
   }
 
+  // Add Fortran runtime libraries
+  if (needFortranLibs(TC.getDriver(), Args)) {
+    TC.AddFortranStdlibLibArgs(Args, CmdArgs);
+  } else {
+  // Claim "no Flang libraries" arguments if any
+    for (auto Arg : Args.filtered(options::OPT_noFlangLibs)) {
+      Arg->claim();
+    }
+  }
+
   if (TC.getSanitizerArgs().needsAsanRt()) {
     CmdArgs.push_back(Args.MakeArgString("-debug"));
     CmdArgs.push_back(Args.MakeArgString("-incremental:no"));
@@ -1253,6 +1263,52 @@ void MSVCToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
 void MSVCToolChain::AddClangCXXStdlibIncludeArgs(const ArgList &DriverArgs,
                                                  ArgStringList &CC1Args) const {
   // FIXME: There should probably be logic here to find libc++ on Windows.
+}
+
+void MSVCToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
+                                            ArgStringList &CmdArgs) const {
+  bool staticFlangLibs = false;
+  bool useOpenMP = false;
+
+  const auto &D = getDriver();
+
+  if (Args.hasArg(options::OPT_staticFlangLibs)) {
+    for (auto *A: Args.filtered(options::OPT_staticFlangLibs)) {
+      A->claim();
+      staticFlangLibs = true;
+    }
+  }
+
+  Arg *A = Args.getLastArg(options::OPT_mp, options::OPT_nomp,
+                           options::OPT_fopenmp, options::OPT_fno_openmp);
+  if (A &&
+      (A->getOption().matches(options::OPT_mp) ||
+       A->getOption().matches(options::OPT_fopenmp))) {
+      useOpenMP = true;
+  }
+
+  CmdArgs.push_back(Args.MakeArgString(std::string("-libpath:") +
+                                        D.Dir + "/../lib"));
+
+  if (needFortranMain(D, Args)) {
+    CmdArgs.push_back("-defaultlib:flangmain");
+    CmdArgs.push_back("-subsystem:console");
+  }
+
+  if (staticFlangLibs) {
+    CmdArgs.push_back("-defaultlib:libflang");
+    CmdArgs.push_back("-defaultlib:libflangrti");
+    if (!useOpenMP) {
+      CmdArgs.push_back("-defaultlib:libompstub");
+    }
+  }
+  else {
+    CmdArgs.push_back("-defaultlib:flang");
+    CmdArgs.push_back("-defaultlib:flangrti");
+    if (!useOpenMP) {
+      CmdArgs.push_back("-defaultlib:ompstub");
+    }
+  }
 }
 
 VersionTuple MSVCToolChain::computeMSVCVersion(const Driver *D,
