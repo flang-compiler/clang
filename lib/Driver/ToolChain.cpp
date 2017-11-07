@@ -687,7 +687,8 @@ void ToolChain::AddCCKextLibArgs(const ArgList &Args,
 }
 
 void ToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
-                                    ArgStringList &CmdArgs) const {
+                                        ArgStringList &CmdArgs,
+                                        bool AddMLinker=false) const {
  bool staticFlangLibs = false;
  bool useOpenMP = false;
 
