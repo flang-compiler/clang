@@ -1313,26 +1313,26 @@ void MSVCToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
                                         D.Dir + "/../lib"));
 
   if (needFortranMain(D, Args)) {
-    TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "-defaultlib:flangmain");
+    TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flangmain");
     TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "-subsystem:console");
   }
 
   if (staticFlangLibs) {
-    TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "-defaultlib:libflang");
-    TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "-defaultlib:libflangrti");
+    TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libflang");
+    TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libflangrti");
     if (!useOpenMP) {
-      TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "-defaultlib:libompstub");
+      TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libompstub");
     } else {
-      TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "-defaultlib:libomp");
+      TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libomp");
     }
   }
   else {
-    TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "-defaultlib:flang");
-    TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "-defaultlib:flangrti");
+    TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flang");
+    TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flangrti");
     if (!useOpenMP) {
-      TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "-defaultlib:ompstub");
+      TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:ompstub");
     } else {
-      TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "-defaultlib:omp"); 
+      TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:omp"); 
     }
   }
 }
