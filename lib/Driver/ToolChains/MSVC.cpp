@@ -1314,7 +1314,7 @@ void MSVCToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
 
   if (needFortranMain(D, Args)) {
     TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flangmain");
-    TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "-subsystem:console");
+    TC.AddLinkerHelper(Args, CmdArgs, AddMLinker, "/subsystem:console");
   }
 
   if (staticFlangLibs) {
