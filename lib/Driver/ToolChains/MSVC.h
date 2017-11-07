@@ -141,7 +141,7 @@ private:
   void addLinkerHelper(const llvm::opt::ArgList &Args,
                        llvm::opt::ArgStringList &CmdArgs,
                        bool IsLinker,
-                       StringRef Arg);
+                       StringRef Arg) const;
 
   std::string VCToolChainPath;
   ToolsetLayout VSLayout = ToolsetLayout::OlderVS;
