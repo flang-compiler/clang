@@ -479,57 +479,6 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     LowerCmdArgs.push_back("8");
   }
 
-  // Set a -x flag for second part of Fortran frontend
-  for (Arg *A : Args.filtered(options::OPT_Mx_EQ)) {
-    A->claim();
-    StringRef Value = A->getValue();
-    auto XFlag = Value.split(",");
-    LowerCmdArgs.push_back("-x");
-    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.first));
-    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.second));
-  }
-
-  // Set a -y flag for second part of Fortran frontend
-  for (Arg *A : Args.filtered(options::OPT_My_EQ)) {
-    A->claim();
-    StringRef Value = A->getValue();
-    auto XFlag = Value.split(",");
-    LowerCmdArgs.push_back("-y");
-    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.first));
-    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.second));
-  }
-
-  // Set a -q (debug) flag for second part of Fortran frontend
-  for (Arg *A : Args.filtered(options::OPT_Mq_EQ)) {
-    A->claim();
-    StringRef Value = A->getValue();
-    auto XFlag = Value.split(",");
-    LowerCmdArgs.push_back("-q");
-    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.first));
-    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.second));
-  }
-
-  // Set a -qq (debug) flag for second part of Fortran frontend
-  for (Arg *A : Args.filtered(options::OPT_Mqq_EQ)) {
-    A->claim();
-    StringRef Value = A->getValue();
-    auto XFlag = Value.split(",");
-    LowerCmdArgs.push_back("-qq");
-    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.first));
-    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.second));
-  }
-
-  // Pass an arbitrary flag for second part of Fortran frontend
-  for (Arg *A : Args.filtered(options::OPT_Wm_EQ)) {
-    A->claim();
-    StringRef Value = A->getValue();
-    SmallVector<StringRef, 8> PassArgs;
-    Value.split(PassArgs, StringRef(","));
-    for (StringRef PassArg : PassArgs) {
-      LowerCmdArgs.push_back(Args.MakeArgString(PassArg));
-    }
-  }
-
   StringRef OptOStr("0");
   if (Arg *A = Args.getLastArg(options::OPT_O_Group)) {
     if (A->getOption().matches(options::OPT_O4)) {
@@ -840,6 +789,57 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
 
   // Remove "noinline" attriblute
   LowerCmdArgs.push_back("-x"); LowerCmdArgs.push_back("183"); LowerCmdArgs.push_back("0x10");
+
+  // Set a -x flag for second part of Fortran frontend
+  for (Arg *A : Args.filtered(options::OPT_Mx_EQ)) {
+    A->claim();
+    StringRef Value = A->getValue();
+    auto XFlag = Value.split(",");
+    LowerCmdArgs.push_back("-x");
+    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.first));
+    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.second));
+  }
+
+  // Set a -y flag for second part of Fortran frontend
+  for (Arg *A : Args.filtered(options::OPT_My_EQ)) {
+    A->claim();
+    StringRef Value = A->getValue();
+    auto XFlag = Value.split(",");
+    LowerCmdArgs.push_back("-y");
+    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.first));
+    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.second));
+  }
+
+  // Set a -q (debug) flag for second part of Fortran frontend
+  for (Arg *A : Args.filtered(options::OPT_Mq_EQ)) {
+    A->claim();
+    StringRef Value = A->getValue();
+    auto XFlag = Value.split(",");
+    LowerCmdArgs.push_back("-q");
+    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.first));
+    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.second));
+  }
+
+  // Set a -qq (debug) flag for second part of Fortran frontend
+  for (Arg *A : Args.filtered(options::OPT_Mqq_EQ)) {
+    A->claim();
+    StringRef Value = A->getValue();
+    auto XFlag = Value.split(",");
+    LowerCmdArgs.push_back("-qq");
+    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.first));
+    LowerCmdArgs.push_back(Args.MakeArgString(XFlag.second));
+  }
+
+  // Pass an arbitrary flag for second part of Fortran frontend
+  for (Arg *A : Args.filtered(options::OPT_Wm_EQ)) {
+    A->claim();
+    StringRef Value = A->getValue();
+    SmallVector<StringRef, 8> PassArgs;
+    Value.split(PassArgs, StringRef(","));
+    for (StringRef PassArg : PassArgs) {
+      LowerCmdArgs.push_back(Args.MakeArgString(PassArg));
+    }
+  }
 
   LowerCmdArgs.push_back("-stbfile");
   LowerCmdArgs.push_back(STBFile);
