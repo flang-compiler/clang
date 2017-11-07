@@ -1280,7 +1280,7 @@ void MSVCToolChain::addLinkerHelper(const ArgList &Args, ArgStringList &CmdArgs,
 
 void MSVCToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
                                             ArgStringList &CmdArgs,
-                                            bool AddMLinker=false) const {
+                                            bool AddMLinker) const {
   bool staticFlangLibs = false;
   bool useOpenMP = false;
 
@@ -1303,9 +1303,9 @@ void MSVCToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
 
   if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles)) {
      if (getDriver().IsFortranMode()) {
-       TC.addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:msvcrt");
+       addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:msvcrt");
      } else if (!getDriver().IsCLMode() && !getDriver().IsFortranMode()) {
-       TC.addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libcmt");
+       addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libcmt");
      }
   }
 
@@ -1313,26 +1313,26 @@ void MSVCToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
                                         D.Dir + "/../lib"));
 
   if (needFortranMain(D, Args)) {
-    TC.addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flangmain");
-    TC.addLinkerHelper(Args, CmdArgs, AddMLinker, "/subsystem:console");
+    addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flangmain");
+    addLinkerHelper(Args, CmdArgs, AddMLinker, "/subsystem:console");
   }
 
   if (staticFlangLibs) {
-    TC.addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libflang");
-    TC.addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libflangrti");
+    addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libflang");
+    addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libflangrti");
     if (!useOpenMP) {
-      TC.addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libompstub");
+      addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libompstub");
     } else {
-      TC.addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libomp");
+      addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libomp");
     }
   }
   else {
-    TC.addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flang");
-    TC.addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flangrti");
+    addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flang");
+    addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flangrti");
     if (!useOpenMP) {
-      TC.addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:ompstub");
+      addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:ompstub");
     } else {
-      TC.addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:omp"); 
+      addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:omp"); 
     }
   }
 }
