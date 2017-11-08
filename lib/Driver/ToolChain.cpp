@@ -663,10 +663,22 @@ void ToolChain::AddCCKextLibArgs(const ArgList &Args,
   CmdArgs.push_back("-lcc_kext");
 }
 
+void addMLinkerHelper(const ArgList &Args, ArgStringList &CmdArgs, bool AddMLinker, StringRef Arg) {
+  if (AddMLinker) {
+    CmdArgs.push_back("-linker");
+    CmdArgs.push_back(Args.MakeArgString(Arg));
+  } else {
+    CmdArgs.push_back(Args.MakeArgString(Arg));
+  }
+}
+
 void ToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
-                                    ArgStringList &CmdArgs) const {
- bool staticFlangLibs = false;
- bool useOpenMP = false;
+                                    ArgStringList &CmdArgs, bool AddMLinker) const {
+  bool staticFlangLibs = false;
+  bool useOpenMP = false;
+
+  const llvm::Triple &Triple = getTriple();
+  bool IsWindows = Triple.isWindowsMSVCEnvironment();
 
   if (Args.hasArg(options::OPT_staticFlangLibs)) {
     for (auto *A: Args.filtered(options::OPT_staticFlangLibs)) {
@@ -680,9 +692,41 @@ void ToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
   if (A &&
       (A->getOption().matches(options::OPT_mp) ||
        A->getOption().matches(options::OPT_fopenmp))) {
-      useOpenMP = true;
+    useOpenMP = true;
   }
+  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles)) {
+    if (getDriver().IsFortranMode()) {
+      addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:msvcrt");
+    } else if (!getDriver().IsCLMode() && !getDriver().IsFortranMode()) {
+      addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libcmt");
+    }
+  }
+  if (IsWindows) {
+    if (!AddMLinker)
+      CmdArgs.push_back(Args.MakeArgString(std::string("-libpath:") +
+                                        D.Dir + "/../lib"));
 
+    if (staticFlangLibs) {
+      addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libflang");
+      addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libflangrti");
+      if( useOpenMP ) {
+        addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libomp");
+      }
+      else {
+        addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:libompstub");
+      }
+    } else {
+      addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flang");
+      addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flangrti");
+      if( useOpenMP ) {
+        addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:omp");
+      }
+      else {
+        addMLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:ompstub");
+      }
+    }
+    return;
+  }
   if (staticFlangLibs) {
     CmdArgs.push_back("-Bstatic");
   }
