@@ -1312,8 +1312,10 @@ void MSVCToolChain::AddFortranStdlibLibArgs(const ArgList &Args,
      }
   }
 
-  CmdArgs.push_back(Args.MakeArgString(std::string("-libpath:") +
-                                        D.Dir + "/../lib"));
+  if (!AddMLinker) {
+    CmdArgs.push_back(Args.MakeArgString(std::string("-libpath:") +
+                                          D.Dir + "/../lib"));
+  }
 
   if (needFortranMain(D, Args)) {
     addLinkerHelper(Args, CmdArgs, AddMLinker, "/defaultlib:flangmain");
