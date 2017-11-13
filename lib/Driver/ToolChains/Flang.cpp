@@ -572,12 +572,20 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   // Add system include arguments.
   getToolChain().AddFlangSystemIncludeArgs(Args, UpperCmdArgs);
 
+#if defined(unix) || defined(__unix) || defined(__unix__)
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("unix");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__unix");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__unix__");
+#endif
+#if defined(linux) || defined(__linux) || defined(__linux__)
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("linux");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__linux");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__linux__");
+#elif defined(__FreeBSD__)
+  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__FreeBSD__");
+#elif defined(__OpenBSD__)
+  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__OpenBSD__");
+#endif
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__NO_MATH_INLINES");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__LP64__");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__x86_64");
