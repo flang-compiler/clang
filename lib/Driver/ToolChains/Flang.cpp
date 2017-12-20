@@ -507,6 +507,12 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     LowerCmdArgs.push_back("-debug");
   }
 
+  if (Args.hasArg(options::OPT_finstrument_functions)) {
+      LowerCmdArgs.push_back("-x");
+      LowerCmdArgs.push_back("129");
+      LowerCmdArgs.push_back("0x800");
+  }
+
   if (Arg *A = Args.getLastArg(options::OPT_ffast_math, options::OPT_fno_fast_math)) {
     if (A->getOption().matches(options::OPT_ffast_math)) {
       LowerCmdArgs.push_back("-x");
