@@ -616,16 +616,10 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__PGLLVM__");
 
   /*
-    When the -Mpreprocess option is given, we invoke the
-    preprocessor in flang1 and then exit.
+    When the -E option is given, run flang1 in preprocessor mode
   */
-  bool skipLower = false;
   if (Args.hasArg(options::OPT_E)) {
-    for (auto Arg : Args.filtered(options::OPT_E)) {
-      Arg->claim();
-    }
     UpperCmdArgs.push_back("-es");
-    skipLower = true;
   }
 
   // Enable preprocessor
@@ -778,7 +772,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   UpperCmdArgs.push_back(ModuleIndexFile);
 
   UpperCmdArgs.push_back("-output");
-  if (skipLower) {
+  if (Args.hasArg(options::OPT_E)) {
     Arg *FinalOutput = Args.getLastArg(options::OPT_o);
     UpperCmdArgs.push_back(FinalOutput->getValue());
   } else {
@@ -786,11 +780,9 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   }
   C.addCommand(llvm::make_unique<Command>(JA, *this, UpperExec, UpperCmdArgs, Inputs));
 
-  // For -fsyntax-only that is it
-  if (Args.hasArg(options::OPT_fsyntax_only)) return;
-
-  // For the -E case; see above
-  if (skipLower) return;
+  // For -fsyntax-only or -E that is it
+  if (Args.hasArg(options::OPT_fsyntax_only) ||
+      Args.hasArg(options::OPT_E)) return;
 
   /***** Lower part of Fortran frontend *****/
 
