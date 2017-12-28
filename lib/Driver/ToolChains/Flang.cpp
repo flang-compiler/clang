@@ -773,9 +773,8 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
 
   UpperCmdArgs.push_back("-output");
   if (Args.hasArg(options::OPT_E)) {
-    Arg *FinalOutput = Args.getLastArg(options::OPT_o);
-    if (FinalOutput != NULL) {
-      UpperCmdArgs.push_back(FinalOutput->getValue());
+    if (Arg *A = Args.getLastArg(options::OPT_o)) {
+      UpperCmdArgs.push_back(Args.MakeArgString(A->getValue()));
     }
   } else {
     UpperCmdArgs.push_back(ILMFile);
