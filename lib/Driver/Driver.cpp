@@ -216,8 +216,13 @@ phases::ID Driver::getFinalPhase(const DerivedArgList &DAL,
   Arg *PhaseArg = nullptr;
   phases::ID FinalPhase;
 
+  /*
+    Note: when passed '-E' and in fortran mode, we do not use the builtin
+    preprocessor.
+  */
   // -{E,EP,P,M,MM} only run the preprocessor.
-  if (CCCIsCPP() || (PhaseArg = DAL.getLastArg(options::OPT_E)) ||
+  if (CCCIsCPP() || (!IsFortranMode() &&
+      (PhaseArg = DAL.getLastArg(options::OPT_E))) ||
       (PhaseArg = DAL.getLastArg(options::OPT__SLASH_EP)) ||
       (PhaseArg = DAL.getLastArg(options::OPT_M, options::OPT_MM)) ||
       (PhaseArg = DAL.getLastArg(options::OPT__SLASH_P))) {
