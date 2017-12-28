@@ -620,17 +620,17 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     preprocessor in flang1 and then exit.
   */
   bool skipLower = false;
-  if (Args.hasArg(options::OPT_Mpreprocess)) {
+  if (Args.hasArg(options::OPT_E)) {
     UpperCmdArgs.push_back("-es");
     skipLower = true;
   }
 
   // Enable preprocessor
-  if (Args.hasArg(options::OPT_Mpreprocess) ||
+  if (Args.hasArg(options::OPT_E) ||
       Args.hasArg(options::OPT_cpp) ||
       types::getPreprocessedType(InputType) != types::TY_INVALID) {
     UpperCmdArgs.push_back("-preprocess");
-    for (auto Arg : Args.filtered(options::OPT_Mpreprocess, options::OPT_cpp)) {
+    for (auto Arg : Args.filtered(options::OPT_E, options::OPT_cpp)) {
       Arg->claim();
     }
   }
@@ -782,7 +782,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   // For -fsyntax-only that is it
   if (Args.hasArg(options::OPT_fsyntax_only)) return;
 
-  // For the -Mpreprocess case; see above
+  // For the -E case; see above
   if (skipLower) return;
 
   /***** Lower part of Fortran frontend *****/
