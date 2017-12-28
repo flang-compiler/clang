@@ -621,6 +621,9 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   */
   bool skipLower = false;
   if (Args.hasArg(options::OPT_E)) {
+    for (auto Arg : Args.filtered(options::OPT_E)) {
+      Arg->claim();
+    }
     UpperCmdArgs.push_back("-es");
     skipLower = true;
   }
