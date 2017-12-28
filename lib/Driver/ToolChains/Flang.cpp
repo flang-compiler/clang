@@ -660,6 +660,16 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__k8__");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__PGLLVM__");
 
+  /*
+    When the -Mpreprocess option is given, we invoke the
+    preprocessor in flang1 and then exit.
+  */
+  bool skipLower = false;
+  if (Args.hasArg(options::OPT_Mpreprocess)) {
+    UpperCmdArgs.push_back("-es");
+    skipLower = true;
+  }
+
   // Enable preprocessor
   if (Args.hasArg(options::OPT_Mpreprocess) ||
       Args.hasArg(options::OPT_cpp) ||
@@ -816,6 +826,9 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
 
   // For -fsyntax-only that is it
   if (Args.hasArg(options::OPT_fsyntax_only)) return;
+
+  // For the -Mpreprocess case; see above
+  if (skipLower) return;
 
   /***** Lower part of Fortran frontend *****/
 
