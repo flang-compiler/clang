@@ -2769,7 +2769,8 @@ Action *Driver::ConstructPhaseAction(Compilation &C, const ArgList &Args,
     return C.MakeAction<PrecompileJobAction>(Input, OutputTy);
   }
   case phases::FortranFrontend: {
-    if (Args.hasArg(options::OPT_fsyntax_only))
+    if (Args.hasArg(options::OPT_fsyntax_only) || 
+        Args.hasArg(options::OPT_E))
       return C.MakeAction<FortranFrontendJobAction>(Input,
                                                     types::TY_Nothing);
     return C.MakeAction<FortranFrontendJobAction>(Input,

@@ -775,8 +775,12 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   UpperCmdArgs.push_back(ModuleIndexFile);
 
   UpperCmdArgs.push_back("-output");
-  UpperCmdArgs.push_back(ILMFile);
-
+  if (skipLower) {
+    Arg *FinalOutput = Args.getLastArg(options::OPT_o);
+    UpperCmdArgs.push_back(FinalOutput->getValue());
+  } else {
+    UpperCmdArgs.push_back(ILMFile);
+  }
   C.addCommand(llvm::make_unique<Command>(JA, *this, UpperExec, UpperCmdArgs, Inputs));
 
   // For -fsyntax-only that is it
