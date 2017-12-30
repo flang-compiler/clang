@@ -57,8 +57,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   // Check file type sanity
   assert(types::isFortran(InputType) && "Can only accept Fortran");
 
-  if (Args.hasArg(options::OPT_fsyntax_only) ||
-      Args.hasArg(options::OPT_E)) {
+  if (Args.hasArg(options::OPT_fsyntax_only)) {
     // For -fsyntax-only produce temp files only
     Stem = C.getDriver().GetTemporaryPath("", "");
   } else {
@@ -617,7 +616,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__PGLLVM__");
 
   /*
-    When the -E option is given, run flang1 in preprocessor mode
+    When the -E option is given, run flang1 in preprocessor only mode
   */
   if (Args.hasArg(options::OPT_E)) {
     UpperCmdArgs.push_back("-es");
@@ -625,10 +624,12 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
 
   // Enable preprocessor
   if (Args.hasArg(options::OPT_E) ||
+      Args.hasArg(options::OPT_Mpreprocess) ||
       Args.hasArg(options::OPT_cpp) ||
       types::getPreprocessedType(InputType) != types::TY_INVALID) {
     UpperCmdArgs.push_back("-preprocess");
-    for (auto Arg : Args.filtered(options::OPT_E, options::OPT_cpp)) {
+    for (auto Arg : Args.filtered(options::OPT_E, options::OPT_Mpreprocess,
+                                  options::OPT_cpp)) {
       Arg->claim();
     }
   }
@@ -774,9 +775,7 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
 
   UpperCmdArgs.push_back("-output");
   if (Args.hasArg(options::OPT_E)) {
-    if (Arg *A = Args.getLastArg(options::OPT_o)) {
-      UpperCmdArgs.push_back(Args.MakeArgString(A->getValue()));
-    }
+    UpperCmdArgs.push_back(llvm::sys::path::filename(OutFile));
   } else {
     UpperCmdArgs.push_back(ILMFile);
   }
