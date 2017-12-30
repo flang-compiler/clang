@@ -57,7 +57,8 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   // Check file type sanity
   assert(types::isFortran(InputType) && "Can only accept Fortran");
 
-  if (Args.hasArg(options::OPT_fsyntax_only)) {
+  if (Args.hasArg(options::OPT_fsyntax_only) ||
+      Args.hasArg(options::OPT_E)) {
     // For -fsyntax-only produce temp files only
     Stem = C.getDriver().GetTemporaryPath("", "");
   } else {
@@ -773,10 +774,13 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   UpperCmdArgs.push_back("-modindex");
   UpperCmdArgs.push_back(ModuleIndexFile);
 
-  UpperCmdArgs.push_back("-output");
   if (Args.hasArg(options::OPT_E)) {
-    UpperCmdArgs.push_back(llvm::sys::path::filename(OutFile));
+    if (Arg *A = Args.getLastArg(options::OPT_o)) {
+      UpperCmdArgs.push_back("-output");
+      UpperCmdArgs.push_back(Args.MakeArgString(A->getValue()));
+    }
   } else {
+    UpperCmdArgs.push_back("-output");
     UpperCmdArgs.push_back(ILMFile);
   }
   C.addCommand(llvm::make_unique<Command>(JA, *this, UpperExec, UpperCmdArgs, Inputs));
