@@ -57,7 +57,8 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   // Check file type sanity
   assert(types::isFortran(InputType) && "Can only accept Fortran");
 
-  if (Args.hasArg(options::OPT_fsyntax_only)) {
+  if (Args.hasArg(options::OPT_fsyntax_only) ||
+      Args.hasArg(options::OPT_E)) {
     // For -fsyntax-only produce temp files only
     Stem = C.getDriver().GetTemporaryPath("", "");
   } else {
@@ -577,20 +578,37 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
 
   // Add system include arguments.
   getToolChain().AddFlangSystemIncludeArgs(Args, UpperCmdArgs);
+	
+  bool IsWindowsMSVC = getToolChain().getTriple().isWindowsMSVCEnvironment();
 
+  if (!IsWindowsMSVC) {
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("unix");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__unix");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__unix__");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("linux");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__linux");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__linux__");
-  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__NO_MATH_INLINES");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__LP64__");
-  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__x86_64");
-  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__x86_64__");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__LONG_MAX__=9223372036854775807L");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__SIZE_TYPE__=unsigned long int");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__PTRDIFF_TYPE__=long int");
+  } else {
+  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__LONG_MAX__=2147483647L");
+  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__SIZE_TYPE__=unsigned long long int");
+  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__PTRDIFF_TYPE__=long long int");
+  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("_WIN32");
+  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("WIN32");
+  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("_WIN64");
+  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("WIN64");
+  VersionTuple MSVT =
+       getToolChain().computeMSVCVersion(&getToolChain().getDriver(), Args);
+  auto msc_ver = MSVT.getMajor() * 100 + MSVT.getMinor().getValueOr(0);
+  UpperCmdArgs.push_back("-def");
+  UpperCmdArgs.push_back(Args.MakeArgString(std::string("_MSC_VER=")+std::to_string(msc_ver)));
+  }
+  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__NO_MATH_INLINES");
+  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__x86_64");
+  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__x86_64__");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__THROW=");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__extension__=");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__amd_64__amd64__");
@@ -598,12 +616,21 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__k8__");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__PGLLVM__");
 
+  /*
+    When the -E option is given, run flang1 in preprocessor only mode
+  */
+  if (Args.hasArg(options::OPT_E)) {
+    UpperCmdArgs.push_back("-es");
+  }
+
   // Enable preprocessor
-  if (Args.hasArg(options::OPT_Mpreprocess) ||
+  if (Args.hasArg(options::OPT_E) ||
+      Args.hasArg(options::OPT_Mpreprocess) ||
       Args.hasArg(options::OPT_cpp) ||
       types::getPreprocessedType(InputType) != types::TY_INVALID) {
     UpperCmdArgs.push_back("-preprocess");
-    for (auto Arg : Args.filtered(options::OPT_Mpreprocess, options::OPT_cpp)) {
+    for (auto Arg : Args.filtered(options::OPT_E, options::OPT_Mpreprocess,
+                                  options::OPT_cpp)) {
       Arg->claim();
     }
   }
@@ -681,6 +708,10 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
     UpperCmdArgs.push_back(Arg->getValue(0));
   }
 
+  // Add env variables
+  addDirectoryList(Args, UpperCmdArgs, "-idir", "C_INCLUDE_PATH");
+  addDirectoryList(Args, UpperCmdArgs, "-idir", "CPATH");	
+
   // "Define" preprocessor flags
   for (auto Arg : Args.filtered(options::OPT_D)) {
     Arg->claim();
@@ -743,13 +774,20 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   UpperCmdArgs.push_back("-modindex");
   UpperCmdArgs.push_back(ModuleIndexFile);
 
-  UpperCmdArgs.push_back("-output");
-  UpperCmdArgs.push_back(ILMFile);
-
+  if (Args.hasArg(options::OPT_E)) {
+    if (Arg *A = Args.getLastArg(options::OPT_o)) {
+      UpperCmdArgs.push_back("-output");
+      UpperCmdArgs.push_back(Args.MakeArgString(A->getValue()));
+    }
+  } else {
+    UpperCmdArgs.push_back("-output");
+    UpperCmdArgs.push_back(ILMFile);
+  }
   C.addCommand(llvm::make_unique<Command>(JA, *this, UpperExec, UpperCmdArgs, Inputs));
 
-  // For -fsyntax-only that is it
-  if (Args.hasArg(options::OPT_fsyntax_only)) return;
+  // For -fsyntax-only or -E that is it
+  if (Args.hasArg(options::OPT_fsyntax_only) ||
+      Args.hasArg(options::OPT_E)) return;
 
   /***** Lower part of Fortran frontend *****/
 
@@ -851,6 +889,25 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   LowerCmdArgs.push_back(STBFile);
 
   LowerCmdArgs.push_back("-asm"); LowerCmdArgs.push_back(Args.MakeArgString(OutFile));
+	
+  const llvm::Triple &Triple = getToolChain().getEffectiveTriple();
+  const std::string &TripleStr = Triple.getTriple();
+  LowerCmdArgs.push_back("-target");
+  LowerCmdArgs.push_back(Args.MakeArgString(TripleStr));
+	
+  if (IsWindowsMSVC && !Args.hasArg(options::OPT_noFlangLibs)) {
+    getToolChain().AddFortranStdlibLibArgs(Args, LowerCmdArgs, true);
+    if (needFortranMain(getToolChain().getDriver(), Args)) {
+      LowerCmdArgs.push_back("-linker");
+      LowerCmdArgs.push_back("/subsystem:console");
+      LowerCmdArgs.push_back("-linker");
+      LowerCmdArgs.push_back("/defaultlib:flangmain");
+    }
+  }
+
+  for (auto Arg : Args.filtered(options::OPT_noFlangLibs)) {
+    Arg->claim();
+  }
 
   C.addCommand(llvm::make_unique<Command>(JA, *this, LowerExec, LowerCmdArgs, Inputs));
 }

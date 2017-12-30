@@ -216,8 +216,13 @@ phases::ID Driver::getFinalPhase(const DerivedArgList &DAL,
   Arg *PhaseArg = nullptr;
   phases::ID FinalPhase;
 
+  /*
+    Note: when passed '-E' and in fortran mode, we do not use the builtin
+    preprocessor.
+  */
   // -{E,EP,P,M,MM} only run the preprocessor.
-  if (CCCIsCPP() || (PhaseArg = DAL.getLastArg(options::OPT_E)) ||
+  if (CCCIsCPP() || (!IsFortranMode() &&
+      (PhaseArg = DAL.getLastArg(options::OPT_E))) ||
       (PhaseArg = DAL.getLastArg(options::OPT__SLASH_EP)) ||
       (PhaseArg = DAL.getLastArg(options::OPT_M, options::OPT_MM)) ||
       (PhaseArg = DAL.getLastArg(options::OPT__SLASH_P))) {
@@ -2764,7 +2769,8 @@ Action *Driver::ConstructPhaseAction(Compilation &C, const ArgList &Args,
     return C.MakeAction<PrecompileJobAction>(Input, OutputTy);
   }
   case phases::FortranFrontend: {
-    if (Args.hasArg(options::OPT_fsyntax_only))
+    if (Args.hasArg(options::OPT_fsyntax_only) || 
+        Args.hasArg(options::OPT_E))
       return C.MakeAction<FortranFrontendJobAction>(Input,
                                                     types::TY_Nothing);
     return C.MakeAction<FortranFrontendJobAction>(Input,
