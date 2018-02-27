@@ -188,13 +188,13 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   // Generate code allowing recursive subprograms
-  for (auto Arg : Args.filtered(options::OPT_Mrecursive_on)) {
+  for (auto Arg : Args.filtered(options::OPT_frecursive)) {
     Arg->claim();
     CommonCmdArgs.push_back("-recursive");
   }
 
   // Disable recursive subprograms
-  for (auto Arg : Args.filtered(options::OPT_Mrecursive_off)) {
+  for (auto Arg : Args.filtered(options::OPT_fno_recursive)) {
     Arg->claim();
     CommonCmdArgs.push_back("-norecursive");
   }
