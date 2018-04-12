@@ -585,17 +585,36 @@ void FlangFrontend::ConstructJob(Compilation &C, const JobAction &JA,
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__linux");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__linux__");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__NO_MATH_INLINES");
-  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__LP64__");
-  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__x86_64");
-  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__x86_64__");
-  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__LONG_MAX__=9223372036854775807L");
-  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__SIZE_TYPE__=unsigned long int");
-  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__PTRDIFF_TYPE__=long int");
+  switch (getToolChain().getEffectiveTriple().getArch()) {
+  case llvm::Triple::aarch64:
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__LP64__");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__aarch64");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__aarch64__");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__ARM_ARCH=8");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__ARM_ARCH__=8");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__LONG_MAX__=9223372036854775807L");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__SIZE_TYPE__=unsigned long int");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__PTRDIFF_TYPE__=long int");
+    break;
+  case llvm::Triple::x86_64:
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__LP64__");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__x86_64");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__x86_64__");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__amd_64__amd64__");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__k8");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__k8__");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__LONG_MAX__=9223372036854775807L");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__SIZE_TYPE__=unsigned long int");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__PTRDIFF_TYPE__=long int");
+    break;
+  default: /* generic 64-bit */
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__LP64__");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__LONG_MAX__=9223372036854775807L");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__SIZE_TYPE__=unsigned long int");
+    UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__PTRDIFF_TYPE__=long int");
+  }
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__THROW=");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__extension__=");
-  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__amd_64__amd64__");
-  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__k8");
-  UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__k8__");
   UpperCmdArgs.push_back("-def"); UpperCmdArgs.push_back("__PGLLVM__");
 
   // Enable preprocessor
